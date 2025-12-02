@@ -28,6 +28,8 @@ keybinds clear-defaults=true {
         bind "w" { ToggleFloatingPanes; SwitchToMode "normal"; }
         bind "z" { TogglePaneFrames; SwitchToMode "normal"; }
     }
+    bind "Ctrl Tab" { GoToNextTab; }
+    bind "Ctrl Shift Tab" { GoToPreviousTab; }
     tab {
         bind "left" { GoToPreviousTab; }
         bind "down" { GoToNextTab; }
