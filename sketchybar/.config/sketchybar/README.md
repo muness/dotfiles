@@ -9,10 +9,6 @@ _A customizable replacement for the macOS status bar_
 
 </div>
 
-## 📸 Preview
-
-![Tmux](../docs/images/sketchybar.png)
-
 ## 🚀 Installation
 
 **Install SketchyBar**
