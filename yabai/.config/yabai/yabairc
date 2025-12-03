@@ -38,7 +38,7 @@ yabai -m signal --add app='^Ghostty$' event=window_created action='yabai -m spac
 yabai -m signal --add app='^Ghostty$' event=window_destroyed action='yabai -m space --layout bsp'
 
 # ---------- Mouse driven control ----------
-yabai -m config mouse_modifier fn
+yabai -m config mouse_modifier alt
 yabai -m config mouse_action1 move
 yabai -m config mouse_action2 resize
 yabai -m config mouse_drop_action swap
