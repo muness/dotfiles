@@ -48,7 +48,7 @@ sketchybar --default icon.font="$ICON_FONT" \
 
 # -- Left Side Items --
 source $ITEM_DIR/spaces.sh
-source $ITEM_DIR/front_app.sh
+# source $ITEM_DIR/front_app.sh
 source $ITEM_DIR/yabai_layout.sh
 
 # -- Right Side Of Notch Items --
