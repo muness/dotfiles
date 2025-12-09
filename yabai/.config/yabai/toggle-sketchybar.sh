@@ -1,6 +1,6 @@
 #!/usr/bin/env sh
 
-# Toggle sketchybar visibility and adjust yabai external bar space
+# Toggle sketchybar visibility and adjust yabai space reservation
 
 HIDDEN=$(sketchybar --query bar | jq -r '.hidden')
 
@@ -11,5 +11,5 @@ if [ "$HIDDEN" = "off" ]; then
 else
     # Bar is hidden - show it
     sketchybar --bar hidden=off
-    yabai -m config external_bar all:34:0
+    yabai -m config external_bar all:37:0
 fi

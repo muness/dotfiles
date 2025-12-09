@@ -20,7 +20,7 @@ LABEL_FONT="SF Pro:Semibold:14.0"
 # If you are looking for other colors, see the color picker:
 # https://felixkratz.github.io/SketchyBar/config/tricks#color-picker
 
-sketchybar --bar height=34 \
+sketchybar --bar height=37 \
   blur_radius=30 \
   position=top \
   sticky=on \
