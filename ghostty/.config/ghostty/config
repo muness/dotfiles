@@ -90,6 +90,15 @@ keybind = cmd+9=text:\x149
 # New pane (quick): Alt+n (zellij shared binding)
 keybind = cmd+n=text:\x1bn
 
+# Tab cycling: Ctrl+Tab / Ctrl+Shift+Tab - unbind to pass to Zellij (requires Kitty keyboard protocol)
+keybind = ctrl+tab=unbind
+keybind = ctrl+shift+tab=unbind
+
+# Tab cycling: Cmd+] and Cmd+[ for next/prev tab
+# Sends Ctrl+t then l/h to Zellij (tab mode + direction)
+keybind = cmd+right_bracket=text:\x14l
+keybind = cmd+left_bracket=text:\x14h
+
 macos-titlebar-style = transparent
 background-opacity = 0.9
 macos-option-as-alt = true
