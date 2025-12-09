@@ -31,12 +31,6 @@ yabai -m config external_bar all:37:0
 # Disable macOS window shadows (cleaner look with borders)
 yabai -m config window_shadow off
 
-# ---------- Ghostty Compatibility ----------
-# Force a layout refresh when Ghostty windows/tabs are created or destroyed
-# This prevents "ghost" tiles when using native macOS tabs (Cmd+T) inside Ghostty
-yabai -m signal --add app='^Ghostty$' event=window_created action='yabai -m space --layout bsp'
-yabai -m signal --add app='^Ghostty$' event=window_destroyed action='yabai -m space --layout bsp'
-
 # ---------- Mouse driven control ----------
 yabai -m config mouse_modifier alt
 yabai -m config mouse_action1 move

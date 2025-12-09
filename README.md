@@ -10,7 +10,7 @@ macOS development environment configuration using [GNU Stow](https://www.gnu.org
 | [skhd](https://github.com/koekeishiya/skhd) | Hotkey daemon |
 | [sketchybar](https://github.com/FelixKratz/SketchyBar) | Custom status bar |
 | [borders](https://github.com/FelixKratz/JankyBorders) | Window borders |
-| [ghostty](https://ghostty.org/) | Terminal emulator |
+| [kitty](https://sw.kovidgoyal.net/kitty/) | Terminal emulator |
 | [zellij](https://zellij.dev/) | Terminal multiplexer |
 | [espanso](https://espanso.org/) | Text expander |
 | vim | Editor config |
@@ -63,7 +63,7 @@ brew install FelixKratz/formulae/sketchybar
 brew install FelixKratz/formulae/borders
 
 # Stow configs (from dotfiles directory)
-stow yabai skhd sketchybar borders ghostty zellij
+stow yabai skhd sketchybar borders kitty zellij
 
 # Start services
 brew services start yabai
@@ -110,7 +110,7 @@ dotfiles/
 ├── skhd/           # Hotkey config
 ├── sketchybar/     # Status bar config
 ├── borders/        # Window borders config
-├── ghostty/        # Terminal config
+├── kitty/          # Terminal config
 ├── zellij/         # Multiplexer config
 ├── .espanso/       # Text expansion
 ├── .vimrc          # Vim config
@@ -133,5 +133,5 @@ stow <package>
 
 ```bash
 cd ~/dotfiles
-stow -D yabai skhd sketchybar borders ghostty zellij
+stow -D yabai skhd sketchybar borders kitty zellij
 ```

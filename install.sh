@@ -28,15 +28,15 @@ brew install koekeishiya/formulae/skhd 2>/dev/null || true
 brew install FelixKratz/formulae/sketchybar 2>/dev/null || true
 brew install FelixKratz/formulae/borders 2>/dev/null || true
 
-# Install Ghostty and Zellij
-brew install --cask ghostty 2>/dev/null || true
+# Install Kitty and Zellij
+brew install --cask kitty 2>/dev/null || true
 brew install zellij 2>/dev/null || true
 
 # Stow packages
 echo "Stowing configuration packages..."
 cd "$DOTFILES_DIR"
 
-PACKAGES=(yabai skhd sketchybar borders ghostty zellij)
+PACKAGES=(yabai skhd sketchybar borders kitty zellij)
 
 for pkg in "${PACKAGES[@]}"; do
     if [ -d "$pkg" ]; then
