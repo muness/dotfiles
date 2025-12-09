@@ -33,6 +33,12 @@ After installation, grant accessibility permissions to:
 
 Go to **System Settings → Privacy & Security → Accessibility** and add both apps.
 
+### Hide the macOS Menu Bar
+
+To use sketchybar as your status bar, hide the default menu bar:
+
+**System Settings → Control Center → Automatically hide and show the menu bar → Always**
+
 ## Installation
 
 ```bash
