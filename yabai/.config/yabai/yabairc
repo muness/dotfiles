@@ -4,10 +4,10 @@
 yabai -m signal --remove "sketchybar_space_change" 2>/dev/null
 yabai -m signal --remove "sketchybar_front_app" 2>/dev/null
 
-yabai -m signal --add event=space_changed action="sketchybar --trigger space_change" label="sketchybar_space_change"
-yabai -m signal --add event=window_focused action="sketchybar --trigger front_app_switched" label="sketchybar_front_app"
-yabai -m signal --add event=dock_did_restart action="brew services restart sketchybar"
-brew services restart sketchybar
+#yabai -m signal --add event=space_changed action="sketchybar --trigger space_change" label="sketchybar_space_change"
+#yabai -m signal --add event=window_focused action="sketchybar --trigger front_app_switched" label="sketchybar_front_app"
+#yabai -m signal --add event=dock_did_restart action="brew services restart sketchybar"
+#brew services restart sketchybar
 
 
 # ---------- Process Management ----------
@@ -26,7 +26,7 @@ yabai -m config bottom_padding 10
 yabai -m config left_padding 10
 yabai -m config right_padding 10
 yabai -m config window_gap 10
-yabai -m config external_bar all:25:0
+yabai -m config external_bar all:34:0
 
 # Disable macOS window shadows (cleaner look with borders)
 yabai -m config window_shadow off
@@ -60,6 +60,7 @@ yabai -m rule --add app="^Raycast$" manage=off
 # Note: Ensure you have JankyBorders installed via brew
 borders active_color="gradient(top_right=0xfffab387,bottom_left=0xfff38ba8)" \
         inactive_color=0xff494d64 \
-        width=6.0 &
+        width=6.0 \
+        blacklist="krisp" &
 
 echo "yabai configuration loaded"

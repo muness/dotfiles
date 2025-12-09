@@ -2,19 +2,15 @@
 alt - return : yabai -m window --toggle zoom-fullscreen
 
 # Hold Tab: temporarily float Chrome for dragging tabs
-:: chrome_floating
-:: default
-
-# Enter chrome_floating mode when holding Tab
-# (only applies if frontmost app is Chrome)
-tab - down [
-    "Google Chrome" : chrome_floating : yabai -m window --toggle float
-]
-
-# Exit chrome_floating mode when releasing Tab
-tab - up [
-    "Google Chrome" : default : yabai -m window --toggle float
-]
+# NOTE: Commented out - syntax not supported by skhd-zig
+# :: chrome_floating
+# :: default
+# tab - down [
+#     "Google Chrome" : chrome_floating : yabai -m window --toggle float
+# ]
+# tab - up [
+#     "Google Chrome" : default : yabai -m window --toggle float
+# ]
 
 # Use a fast shell for commands
 .shell "/bin/dash"
@@ -90,8 +86,8 @@ alt - d : yabai -m window --display next; yabai -m window --focus recent
 # Toggle floating / tiling for current window
 alt - f : yabai -m window --toggle float
 
-# Re-balance the current space (fix weird ratios)
-alt - b : yabai -m space --balance
+# Toggle sketchybar visibility
+alt - b : ~/.config/yabai/toggle-sketchybar.sh
 
 # Make current window "primary" on this space
 alt - m : yabai -m window --swap biggest
