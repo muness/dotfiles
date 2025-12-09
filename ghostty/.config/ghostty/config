@@ -102,6 +102,7 @@ keybind = cmd+left_bracket=text:\x14h
 macos-titlebar-style = transparent
 background-opacity = 0.9
 macos-option-as-alt = true
+mouse-hide-while-typing = true
 
 # Window chrome for dragging
 window-decoration = true
