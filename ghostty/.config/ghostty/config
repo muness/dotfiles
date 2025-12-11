@@ -65,27 +65,27 @@ keybind = cmd+0=reset_font_size
 keybind = cmd+k=clear_screen
 
 # ---------- Zellij Integration ----------
-# Pass Cmd keys through to Zellij (Ctrl+t = tab mode, Ctrl+p = pane mode)
+# Pass Cmd keys through to Zellij (Alt+t = tab mode, Alt+Shift+p = pane mode)
 
-# New tab: Ctrl+t then n
-keybind = cmd+t=text:\x14n
-# Close pane: Ctrl+p then x
-keybind = cmd+w=text:\x10x
-# Split right: Ctrl+p then r
-keybind = cmd+d=text:\x10r
-# Split down: Ctrl+p then d
-keybind = cmd+shift+d=text:\x10d
+# New tab: Alt+t then n
+keybind = cmd+t=text:\x1btn
+# Close pane: Alt+Shift+p then x
+keybind = cmd+w=text:\x1bPx
+# Split right: Alt+Shift+p then r
+keybind = cmd+d=text:\x1bPr
+# Split down: Alt+Shift+p then d
+keybind = cmd+shift+d=text:\x1bPd
 
-# Tab navigation: Ctrl+t then <number>
-keybind = cmd+1=text:\x141
-keybind = cmd+2=text:\x142
-keybind = cmd+3=text:\x143
-keybind = cmd+4=text:\x144
-keybind = cmd+5=text:\x145
-keybind = cmd+6=text:\x146
-keybind = cmd+7=text:\x147
-keybind = cmd+8=text:\x148
-keybind = cmd+9=text:\x149
+# Tab navigation: Alt+t then <number>
+keybind = cmd+1=text:\x1bt1
+keybind = cmd+2=text:\x1bt2
+keybind = cmd+3=text:\x1bt3
+keybind = cmd+4=text:\x1bt4
+keybind = cmd+5=text:\x1bt5
+keybind = cmd+6=text:\x1bt6
+keybind = cmd+7=text:\x1bt7
+keybind = cmd+8=text:\x1bt8
+keybind = cmd+9=text:\x1bt9
 
 # New pane (quick): Alt+n (zellij shared binding)
 keybind = cmd+n=text:\x1bn
@@ -95,9 +95,9 @@ keybind = ctrl+tab=unbind
 keybind = ctrl+shift+tab=unbind
 
 # Tab cycling: Cmd+] and Cmd+[ for next/prev tab
-# Sends Ctrl+t then l/h to Zellij (tab mode + direction)
-keybind = cmd+right_bracket=text:\x14l
-keybind = cmd+left_bracket=text:\x14h
+# Sends Alt+t then l/h to Zellij (tab mode + direction)
+keybind = cmd+right_bracket=text:\x1btl
+keybind = cmd+left_bracket=text:\x1bth
 
 macos-titlebar-style = transparent
 background-opacity = 0.9
