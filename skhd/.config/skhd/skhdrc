@@ -1,5 +1,5 @@
-# Alt + Enter to toggle fullscreen
-alt - return : yabai -m window --toggle zoom-fullscreen
+# Alt + Enter to toggle fullscreen (disabled for toad)
+# alt - return : yabai -m window --toggle zoom-fullscreen
 
 # Hold Tab: temporarily float Chrome for dragging tabs
 # NOTE: Commented out - syntax not supported by skhd-zig

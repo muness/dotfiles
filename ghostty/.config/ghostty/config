@@ -37,7 +37,7 @@ selection-background = #364a82
 shell-integration = fish
 
 # Auto-launch Zellij (attach to existing session or create new)
-command = /opt/homebrew/bin/zellij attach --create
+command = /opt/homebrew/bin/zellij attach --create main
 
 # AI NOTES FOR CYBERPUNK DEV:
 # - Maximum transparency (0.85) for futuristic glass effect
@@ -52,7 +52,7 @@ command = /opt/homebrew/bin/zellij attach --create
 # Ghostty tabs disabled - using Zellij for multiplexing (yabai compatible)
 
 # Text operations
-keybind = shift+enter=text:\x1b\r
+# keybind = shift+enter=text:\x1b\r  # Disabled for TOAD multiline support
 keybind = cmd+c=copy_to_clipboard
 keybind = cmd+v=paste_from_clipboard
 
