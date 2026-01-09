@@ -49,6 +49,11 @@ yabai -m rule --add app="^Calendar$" manage=off
 yabai -m rule --add app="^Calculator$" manage=off
 yabai -m rule --add app="^Raycast$" manage=off
 
+# Tuple video windows - float the webcam grid, but let screen shares tile normally
+# The grid format is <rows>:<cols>:<start-x>:<start-y>:<width>:<height>
+# grid=6:6:4:0:2:2 positions in top-right at about 1/9 screen size
+yabai -m rule --add app="^Tuple$" title="^Webcam Grid$" manage=off grid=6:6:4:0:2:2
+
 # ---------- Start External Tools ----------
 # JankyBorders configuration
 # Note: Ensure you have JankyBorders installed via brew
