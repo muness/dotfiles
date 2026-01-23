@@ -8,11 +8,12 @@ macOS development environment configuration using [GNU Stow](https://www.gnu.org
 |------|-------------|
 | [yabai](https://github.com/koekeishiya/yabai) | Tiling window manager |
 | [skhd](https://github.com/koekeishiya/skhd) | Hotkey daemon |
-| [sketchybar](https://github.com/FelixKratz/SketchyBar) | Custom status bar |
 | [borders](https://github.com/FelixKratz/JankyBorders) | Window borders |
-| [kitty](https://sw.kovidgoyal.net/kitty/) | Terminal emulator |
+| [ghostty](https://ghostty.org/) | Terminal emulator |
+| [kitty](https://sw.kovidgoyal.net/kitty/) | Terminal emulator (alt) |
 | [zellij](https://zellij.dev/) | Terminal multiplexer |
 | [espanso](https://espanso.org/) | Text expander |
+| zsh | Shell configuration |
 | vim | Editor config |
 
 ## Prerequisites
@@ -32,12 +33,6 @@ After installation, grant accessibility permissions to:
 - skhd
 
 Go to **System Settings → Privacy & Security → Accessibility** and add both apps.
-
-### Hide the macOS Menu Bar
-
-To use sketchybar as your status bar, hide the default menu bar:
-
-**System Settings → Control Center → Automatically hide and show the menu bar → Always**
 
 ## Installation
 
@@ -59,16 +54,14 @@ brew bundle
 # Install additional tools not in Brewfile
 brew install koekeishiya/formulae/yabai
 brew install koekeishiya/formulae/skhd
-brew install FelixKratz/formulae/sketchybar
 brew install FelixKratz/formulae/borders
 
 # Stow configs (from dotfiles directory)
-stow yabai skhd sketchybar borders kitty zellij
+stow yabai skhd borders ghostty kitty zellij zsh
 
 # Start services
 brew services start yabai
 brew services start skhd
-brew services start sketchybar
 ```
 
 ## Keybindings
@@ -82,7 +75,6 @@ All keybindings use `alt` as the modifier.
 | `alt + h/j/k/l` | Focus window (west/south/north/east) |
 | `alt + shift + h/j/k/l` | Swap window (west/south/north/east) |
 | `alt + ctrl + h/j/k/l` | Resize window |
-| `alt + return` | Toggle fullscreen |
 | `alt + f` | Toggle float |
 | `alt + m` | Swap with largest window |
 | `alt + r` | Rotate layout 90° |
@@ -99,7 +91,6 @@ All keybindings use `alt` as the modifier.
 
 | Key | Action |
 |-----|--------|
-| `alt + b` | Toggle sketchybar visibility |
 | `alt + o` | Toggle Obsidian |
 
 ## Structure
@@ -108,17 +99,18 @@ All keybindings use `alt` as the modifier.
 dotfiles/
 ├── yabai/          # Window manager config
 ├── skhd/           # Hotkey config
-├── sketchybar/     # Status bar config
 ├── borders/        # Window borders config
-├── kitty/          # Terminal config
+├── ghostty/        # Terminal config (primary)
+├── kitty/          # Terminal config (alt)
 ├── zellij/         # Multiplexer config
+├── zsh/            # Shell config (.zshenv, .zprofile, .zshrc)
 ├── .espanso/       # Text expansion
 ├── .vimrc          # Vim config
 ├── Brewfile        # Homebrew dependencies
 └── install.sh      # Installation script
 ```
 
-Each directory is structured for GNU Stow - running `stow <dir>` creates symlinks in `~/.config/`.
+Each directory is structured for GNU Stow - running `stow <dir>` creates symlinks in `~/.config/` or `~/`.
 
 ## Updating
 
@@ -133,5 +125,5 @@ stow <package>
 
 ```bash
 cd ~/dotfiles
-stow -D yabai skhd sketchybar borders kitty zellij
+stow -D yabai skhd borders ghostty kitty zellij zsh
 ```
