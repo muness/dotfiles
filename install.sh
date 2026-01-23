@@ -22,10 +22,10 @@ echo "Installing Brewfile dependencies..."
 brew bundle --file="$DOTFILES_DIR/Brewfile"
 
 # Install window management tools (not in Brewfile)
-echo "Installing yabai, skhd, sketchybar, borders..."
+echo "Installing yabai, skhd, borders..."
 brew install koekeishiya/formulae/yabai 2>/dev/null || true
 brew install koekeishiya/formulae/skhd 2>/dev/null || true
-brew install FelixKratz/formulae/sketchybar 2>/dev/null || true
+# brew install FelixKratz/formulae/sketchybar 2>/dev/null || true
 brew install FelixKratz/formulae/borders 2>/dev/null || true
 
 # Install Kitty and Zellij
@@ -36,7 +36,7 @@ brew install zellij 2>/dev/null || true
 echo "Stowing configuration packages..."
 cd "$DOTFILES_DIR"
 
-PACKAGES=(yabai skhd sketchybar borders kitty zellij)
+PACKAGES=(yabai skhd borders kitty zellij)
 
 for pkg in "${PACKAGES[@]}"; do
     if [ -d "$pkg" ]; then
@@ -61,7 +61,7 @@ echo ""
 echo "Starting services..."
 brew services start yabai 2>/dev/null || true
 brew services start skhd 2>/dev/null || true
-brew services start sketchybar 2>/dev/null || true
+# brew services start sketchybar 2>/dev/null || true
 
 echo ""
 echo "Installation complete!"
