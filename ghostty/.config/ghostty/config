@@ -52,7 +52,7 @@ command = /opt/homebrew/bin/zellij attach --create main
 # Ghostty tabs disabled - using Zellij for multiplexing (yabai compatible)
 
 # Text operations
-# keybind = shift+enter=text:\x1b\r  # Disabled for TOAD multiline support
+keybind = shift+enter=text:\x1b\r
 keybind = cmd+c=copy_to_clipboard
 keybind = cmd+v=paste_from_clipboard
 
@@ -90,9 +90,10 @@ keybind = cmd+9=text:\x1bt9
 # New pane (quick): Alt+n (zellij shared binding)
 keybind = cmd+n=text:\x1bn
 
-# Tab cycling: Ctrl+Tab / Ctrl+Shift+Tab - unbind to pass to Zellij (requires Kitty keyboard protocol)
-keybind = ctrl+tab=unbind
-keybind = ctrl+shift+tab=unbind
+# Tab cycling: Ctrl+Tab / Ctrl+Shift+Tab -> Zellij tab navigation
+# Sends Alt+t then l/h (tab mode + next/prev)
+keybind = ctrl+tab=text:\x1btl
+keybind = ctrl+shift+tab=text:\x1bth
 
 # Tab cycling: Cmd+] and Cmd+[ for next/prev tab
 # Sends Alt+t then l/h to Zellij (tab mode + direction)
