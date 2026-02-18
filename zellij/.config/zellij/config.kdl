@@ -4,7 +4,9 @@
 
 keybinds clear-defaults=true {
     locked {
-        bind "Alt g" { SwitchToMode "normal"; }
+        bind "Ctrl g" { SwitchToMode "normal"; }
+        bind "Ctrl Tab" { GoToNextTab; }
+        bind "Ctrl Shift Tab" { GoToPreviousTab; }
     }
     pane {
         bind "left" { MoveFocus "left"; }
@@ -149,7 +151,7 @@ keybinds clear-defaults=true {
         bind "Alt [" { PreviousSwapLayout; }
         bind "Alt ]" { NextSwapLayout; }
         bind "Alt f" { ToggleFloatingPanes; }
-        bind "Alt g" { SwitchToMode "locked"; }
+        bind "Ctrl g" { SwitchToMode "locked"; }
         bind "Alt h" { MoveFocusOrTab "left"; }
         bind "Alt i" { MoveTab "left"; }
         bind "Alt j" { MoveFocus "down"; }
@@ -292,7 +294,7 @@ web_client {
 // Choose the base input mode of zellij.
 // Default: normal
 // 
-// default_mode "locked"
+default_mode "locked"
  
 // Choose the path to the default shell that zellij will use for opening new panes
 // Default: $SHELL
