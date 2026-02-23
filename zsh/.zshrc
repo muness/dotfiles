@@ -74,7 +74,7 @@ zstyle :omz:plugins:iterm2 shell-integration yes
 # Custom plugins may be added to $ZSH_CUSTOM/plugins/
 # Example format: plugins=(rails git textmate ruby lighthouse)
 # Add wisely, as too many plugins slow down shell startup.
-plugins=(git git-prompt ohmyzsh-full-autoupdate asdf 1password dotenv direnv gh iterm2 vscode zsh-interactive-cd fzf)
+plugins=(git git-prompt ohmyzsh-full-autoupdate 1password dotenv direnv gh iterm2 vscode zsh-interactive-cd fzf)
 
 ZSH_THEME=agnoster-light
 
@@ -164,9 +164,6 @@ export PATH="$BUN_INSTALL/bin:$PATH"
 
 # mise (universal version manager)
 eval "$(mise activate zsh)"
-
-# fnm (Fast Node Manager)
-eval "$(fnm env --use-on-cd)"
 
 # ==============================================
 # Bun Completions
@@ -299,3 +296,6 @@ export PATH="$HOME/.amp/bin:$PATH"
 alias claude-artium='CLAUDE_CONFIG_DIR=~/.claude-artium claude'
 
 RUSTC_WRAPPER=sccache
+
+# bun completions
+[ -s "/Users/muness1/.bun/_bun" ] && source "/Users/muness1/.bun/_bun"
