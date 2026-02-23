@@ -52,7 +52,8 @@ command = /opt/homebrew/bin/zellij attach --create main
 # Ghostty tabs disabled - using Zellij for multiplexing (yabai compatible)
 
 # Text operations
-keybind = shift+enter=text:\x1b\r
+keybind = alt+backspace=text:\x1b\x7f
+keybind = shift+enter=text:\n
 keybind = cmd+c=copy_to_clipboard
 keybind = cmd+v=paste_from_clipboard
 
