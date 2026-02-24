@@ -7,6 +7,7 @@ keybinds clear-defaults=true {
         bind "Ctrl g" { SwitchToMode "normal"; }
         bind "Ctrl Tab" { GoToNextTab; }
         bind "Ctrl Shift Tab" { GoToPreviousTab; }
+        bind "Ctrl Shift t" { NewTab; }
     }
     pane {
         bind "left" { MoveFocus "left"; }

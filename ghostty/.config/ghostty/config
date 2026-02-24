@@ -68,8 +68,8 @@ keybind = cmd+k=clear_screen
 # ---------- Zellij Integration ----------
 # Pass Cmd keys through to Zellij (Alt+t = tab mode, Alt+Shift+p = pane mode)
 
-# New tab: Alt+t then n
-keybind = cmd+t=text:\x1btn
+# New tab: sends Ctrl+Shift+t via Kitty protocol (bound in Zellij locked mode)
+keybind = cmd+t=text:\x1b[116;6u
 # Close pane: Alt+Shift+p then x
 keybind = cmd+w=text:\x1bPx
 # Split right: Alt+Shift+p then r
