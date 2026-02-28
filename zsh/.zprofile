@@ -3,3 +3,6 @@
 source ~/.orbstack/shell/init.zsh 2>/dev/null || :
 
 # Homebrew and core PATH now in .zshenv for all shell contexts
+
+# Added by Obsidian
+export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
