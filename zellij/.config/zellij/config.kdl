@@ -472,7 +472,7 @@ support_kitty_keyboard_protocol true
 // - false
 // Default: false
 // 
-// web_server false
+web_server true
 // Whether to allow sessions started in the terminal to be shared through a local web server, assuming one is
 // running (see the `web_server` option for more details).
 // (Requires restart)
@@ -486,7 +486,7 @@ support_kitty_keyboard_protocol true
 // - "disabled" (do not allow web sharing and do not permit sessions started in the terminal to opt-in to it)
 // Default: "off"
 // 
-// web_sharing "off"
+web_sharing "on"
 // A path to a certificate file to be used when setting up the web client to serve the
 // connection over HTTPs
 // 
@@ -526,7 +526,7 @@ show_startup_tips false
 // The ip address the web server should listen on when it starts
 // Default: "127.0.0.1"
 // (Requires restart)
-// web_server_ip "127.0.0.1"
+web_server_ip "0.0.0.0"
  
 // The port the web server should listen on when it starts
 // Default: 8082
