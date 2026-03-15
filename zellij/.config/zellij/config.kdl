@@ -526,7 +526,7 @@ show_startup_tips false
 // The ip address the web server should listen on when it starts
 // Default: "127.0.0.1"
 // (Requires restart)
-web_server_ip "0.0.0.0"
+// web_server_ip "127.0.0.1"
  
 // The port the web server should listen on when it starts
 // Default: 8082
