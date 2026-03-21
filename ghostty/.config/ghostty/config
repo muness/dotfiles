@@ -99,8 +99,8 @@ keybind = ctrl+shift+tab=text:\x1bth
 # Tab cycling: Cmd+] and Cmd+[ and Ctrl+] and Ctrl+[
 # Sends Kitty protocol CSI sequences for Ctrl+Tab / Ctrl+Shift+Tab
 # which Zellij handles directly in locked mode
-keybind = cmd+right_bracket=text:\x1b[9;5u
-keybind = cmd+left_bracket=text:\x1b[9;6u
+keybind = cmd+bracket_right=text:\x1b[9;5u
+keybind = cmd+bracket_left=text:\x1b[9;6u
 
 macos-titlebar-style = transparent
 background-opacity = 0.9
