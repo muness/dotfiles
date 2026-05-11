@@ -1,10 +1,16 @@
-#!/bin/zsh
-/opt/homebrew/bin/zellij attach --create 2>/tmp/zellij-error.log
-exit_code=$?
+#!/bin/sh
+# Used for ⌘N / shell=. Never loads zshrc (Kitty used to run `zsh -il` → heavy rc → failures).
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin${PATH:+:$PATH}"
 
-if [[ $exit_code -ne 0 ]]; then
-    echo "⚠️  Zellij failed to start (exit code: $exit_code)"
-    [[ -s /tmp/zellij-error.log ]] && echo "Error: $(cat /tmp/zellij-error.log)"
-    echo "Falling back to plain zsh...\n"
-    exec /bin/zsh
+for zellij_bin in /opt/homebrew/bin/zellij /usr/local/bin/zellij; do
+  if [ -x "$zellij_bin" ]; then
+    exec "$zellij_bin" attach --create default-session
+  fi
+done
+
+if command -v zellij >/dev/null 2>&1; then
+  exec zellij attach --create default-session
 fi
+
+echo "zellij not found; PATH=$PATH" >&2
+exec /bin/zsh -il

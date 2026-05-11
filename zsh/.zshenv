@@ -2,7 +2,7 @@
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
 # Cargo/Rust
-. "$HOME/.cargo/env"
+[[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
 
 # Core PATH additions (available in all contexts)
 export PATH="$HOME/bin:$HOME/.local/bin:$PATH"

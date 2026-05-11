@@ -8,6 +8,8 @@ keybinds clear-defaults=true {
         bind "Ctrl Tab" { GoToNextTab; }
         bind "Ctrl Shift Tab" { GoToPreviousTab; }
         bind "Ctrl Shift t" { NewTab; }
+        // Alt+t lives in shared_except "locked" "tab" — unreachable while default_mode is locked
+        bind "Alt t" { SwitchToMode "tab"; }
     }
     pane {
         bind "left" { MoveFocus "left"; }

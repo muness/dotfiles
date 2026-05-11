@@ -9,8 +9,8 @@ My macOS setup: tiling windows, keyboard-driven workflow, and terminal config. U
 | [yabai](https://github.com/koekeishiya/yabai) | Automatically arranges windows in a grid (tiling window manager) |
 | [skhd](https://github.com/koekeishiya/skhd) | Global keyboard shortcuts |
 | [borders](https://github.com/FelixKratz/JankyBorders) | Colored borders around the focused window |
-| [ghostty](https://ghostty.org/) | Fast terminal (primary) |
-| [kitty](https://sw.kovidgoyal.net/kitty/) | Fast terminal (backup) |
+| [kitty](https://sw.kovidgoyal.net/kitty/) | Primary terminal |
+| [ghostty](https://ghostty.org/) | Optional config in `ghostty/` (not stowed by default) |
 | [zellij](https://zellij.dev/) | Split panes and tabs inside the terminal |
 | [espanso](https://espanso.org/) | Type shortcuts that expand into longer text |
 | zsh | Shell startup files (.zshenv, .zprofile, .zshrc) |
@@ -72,8 +72,8 @@ dotfiles/
 ├── yabai/      → ~/.config/yabai/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/
-├── ghostty/    → ~/.config/ghostty/
 ├── kitty/      → ~/.config/kitty/
+├── ghostty/    → optional; `stow ghostty` if you use it
 ├── zellij/     → ~/.config/zellij/
 ├── zsh/        → ~/.zshenv, ~/.zprofile, ~/.zshrc
 ├── .espanso/   → ~/.espanso/
@@ -93,7 +93,7 @@ brew install FelixKratz/formulae/borders
 
 # Symlink only what you want
 cd ~/dotfiles
-stow ghostty zellij zsh
+stow kitty zellij zsh
 
 # Start services
 brew services start yabai
@@ -112,5 +112,7 @@ stow <package>  # re-stow if configs changed
 
 ```bash
 cd ~/dotfiles
-stow -D yabai skhd borders ghostty kitty zellij zsh
+stow -D yabai skhd borders kitty zellij zsh
 ```
+
+Optional: `stow -D ghostty` if you had linked it.

@@ -17,7 +17,7 @@
 # --------------------------------------------------------
 
 # Example process groups if you later want app specific behavior
-.define terminal_apps ["ghostty", "wezterm", "terminal", "iterm2"]
+.define terminal_apps ["kitty", "wezterm", "terminal", "iterm2"]
 .define browser_apps  ["chrome", "google chrome", "safari", "firefox", "arc"]
 
 # Reusable yabai commands
