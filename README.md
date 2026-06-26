@@ -9,9 +9,9 @@ My macOS setup: tiling windows, keyboard-driven workflow, and terminal config. U
 | [yabai](https://github.com/koekeishiya/yabai) | Automatically arranges windows in a grid (tiling window manager) |
 | [skhd](https://github.com/koekeishiya/skhd) | Global keyboard shortcuts |
 | [borders](https://github.com/FelixKratz/JankyBorders) | Colored borders around the focused window |
-| [kitty](https://sw.kovidgoyal.net/kitty/) | Primary terminal |
+| [kitty](https://sw.kovidgoyal.net/kitty/) | Primary terminal; starts [Zellij](https://zellij.dev/) automatically (see below) |
 | [ghostty](https://ghostty.org/) | Optional config in `ghostty/` (not stowed by default) |
-| [zellij](https://zellij.dev/) | Split panes and tabs inside the terminal |
+| [zellij](https://zellij.dev/) | Multiplexer inside Kitty (tabs, panes); launched via Kitty `startup_session` |
 | [espanso](https://espanso.org/) | Type shortcuts that expand into longer text |
 | zsh | Shell startup files (.zshenv, .zprofile, .zshrc) |
 | vim | Editor config |
@@ -24,8 +24,27 @@ cd ~/dotfiles
 ./install.sh
 ```
 
-Then grant accessibility permissions to **yabai** and **skhd**:
-**System Settings → Privacy & Security → Accessibility**
+Grant accessibility to **yabai** and **skhd**: **System Settings → Privacy & Security → Accessibility**
+
+Start yabai and skhd with their built-in launchd helpers (these formulas do not use `brew services`). Borders can still use Homebrew services:
+
+```bash
+yabai --start-service
+skhd --start-service
+brew services start borders
+```
+
+Open **Kitty** from **Applications** or the Dock (⌘Q any old instance first). The config expects Zellij at **`/opt/homebrew/bin/zellij`** (Apple Silicon Homebrew); on Intel Homebrew, edit `kitty/.config/kitty/zellij.session` to use **`/usr/local/bin/zellij`**.
+
+### Kitty + Zellij
+
+Kitty is wired so GUI launches (Dock/Finder) still see Homebrew on **`PATH`** (`env` + `exe_search_path` in `kitty.conf`). A **`startup_session`** loads **`zellij.session`**, which attaches or creates a session named **`default-session`**. New OS windows (⌘N) use the same POSIX **`zellij-launcher.sh`** helper so **`~/.zshrc`** does not run before Zellij.
+
+**Important:** Kitty **does not** apply `startup_session` when you run something like **`kitty ~/project`** or any invocation that passes a program on the command line. Use **`open -a kitty.app`** or the Dock when you want Zellij on startup.
+
+Saving **`~/.config/zellij/config.kdl`** is often picked up live; if keybindings do not change, quit Zellij once and start again.
+
+In **`kitty.conf`**, several **⌘** shortcuts send the same byte sequences Zellij expects after **⌥t** (tabs) or **⌥⇧p** (panes), so macOS-friendly keys still work inside Kitty.
 
 ### Prerequisites
 
@@ -72,7 +91,7 @@ dotfiles/
 ├── yabai/      → ~/.config/yabai/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/
-├── kitty/      → ~/.config/kitty/
+├── kitty/      → ~/.config/kitty/   (kitty.conf, zellij.session, scripts/zellij-launcher.sh)
 ├── ghostty/    → optional; `stow ghostty` if you use it
 ├── zellij/     → ~/.config/zellij/
 ├── zsh/        → ~/.zshenv, ~/.zprofile, ~/.zshrc
@@ -90,14 +109,17 @@ If you prefer to install selectively:
 brew install stow
 brew install koekeishiya/formulae/yabai koekeishiya/formulae/skhd
 brew install FelixKratz/formulae/borders
+brew install --cask kitty
+brew install zellij
 
 # Symlink only what you want
 cd ~/dotfiles
 stow kitty zellij zsh
 
-# Start services
-brew services start yabai
-brew services start skhd
+# Start tiling stack (same as Quick Start)
+yabai --start-service
+skhd --start-service
+brew services start borders
 ```
 
 ## Updating

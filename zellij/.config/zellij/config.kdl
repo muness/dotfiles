@@ -10,6 +10,8 @@ keybinds clear-defaults=true {
         bind "Ctrl Shift t" { NewTab; }
         // Alt+t lives in shared_except "locked" "tab" — unreachable while default_mode is locked
         bind "Alt t" { SwitchToMode "tab"; }
+        // Close focused pane without entering pane/tab mode (x in tab mode closes the tab)
+        bind "Alt Shift x" { CloseFocus; }
     }
     pane {
         bind "left" { MoveFocus "left"; }
@@ -50,10 +52,10 @@ keybinds clear-defaults=true {
         bind "[" { BreakPaneLeft; SwitchToMode "normal"; }
         bind "]" { BreakPaneRight; SwitchToMode "normal"; }
         bind "b" { BreakPane; SwitchToMode "normal"; }
-        bind "h" { GoToPreviousTab; }
-        bind "j" { GoToNextTab; }
-        bind "k" { GoToPreviousTab; }
-        bind "l" { GoToNextTab; }
+        bind "h" { GoToPreviousTab; SwitchToMode "locked"; }
+        bind "j" { GoToNextTab; SwitchToMode "locked"; }
+        bind "k" { GoToPreviousTab; SwitchToMode "locked"; }
+        bind "l" { GoToNextTab; SwitchToMode "locked"; }
         bind "n" { NewTab; SwitchToMode "normal"; }
         bind "r" { SwitchToMode "renametab"; TabNameInput 0; }
         bind "s" { ToggleActiveSyncTab; SwitchToMode "normal"; }
