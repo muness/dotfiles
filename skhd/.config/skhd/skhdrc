@@ -101,3 +101,25 @@ alt - r : yabai -m space --rotate 90
 # alt - t : @toggle_app("Terminal")
 # alt - c : @toggle_app("Visual Studio Code")
 alt - o : @toggle_app("Obsidian")
+
+
+# --------------------------------------------------------
+# Centered master layout (opt-in, per Space)
+# ~/.config/yabai/centered-master.sh
+# --------------------------------------------------------
+
+.define cm : ~/.config/yabai/centered-master.sh {{1}}
+
+# Turn the centered master layout on/off for the current space
+alt + shift - c : @cm("toggle")
+
+# Promote the focused window to master (dwm's mod+Return)
+alt - return : @cm("promote")
+
+# Master width. alt+ctrl-h/l are already the native BSP resize, so use cmd.
+alt + cmd - h : @cm("width -0.05")
+alt + cmd - l : @cm("width +0.05")
+alt + cmd - 0 : @cm("width 0.5")
+
+# Forget the remembered columns and lay the space out from scratch
+alt + shift - r : @cm("repair")

@@ -64,3 +64,33 @@ borders active_color="gradient(top_right=0xfffab387,bottom_left=0xfff38ba8)" \
         blacklist="krisp" &
 
 echo "yabai configuration loaded"
+
+# ---------- Centered master layout (opt-in, per Space) ----------
+# ~/.config/yabai/centered-master.sh -- see readme in that file.
+# Enabled per Space with `alt + shift - c`; spaces that have not opted in are
+# completely unaffected by these signals.
+CM="$HOME/.config/yabai/centered-master.sh"
+
+for _sig in cm_window_created cm_window_destroyed cm_window_minimized \
+            cm_window_deminimized cm_app_visible cm_app_hidden \
+            cm_app_terminated cm_space_changed cm_display_changed \
+            cm_display_added cm_display_removed cm_display_resized \
+            cm_system_woke cm_window_moved cm_window_resized; do
+    yabai -m signal --remove "$_sig" 2>/dev/null
+done
+
+# Structural changes: re-apply the layout on every on-screen space.
+for _ev in window_created window_destroyed window_minimized window_deminimized \
+           application_visible application_hidden application_terminated \
+           space_changed display_changed display_added display_removed \
+           display_resized system_woke; do
+    yabai -m signal --add event="$_ev" action="$CM reflow-visible" \
+        label="cm_${_ev}" 2>/dev/null
+done
+
+# Mouse drags and resizes: debounced, and able to adopt a new master width.
+yabai -m signal --add event=window_moved   action="$CM nudge" label="cm_window_moved"
+yabai -m signal --add event=window_resized action="$CM nudge" label="cm_window_resized"
+
+# Re-apply to whatever is on screen after a yabai restart.
+"$CM" reflow-visible 2>/dev/null &

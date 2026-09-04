@@ -36,7 +36,7 @@ brew install zellij 2>/dev/null || true
 echo "Stowing configuration packages..."
 cd "$DOTFILES_DIR"
 
-PACKAGES=(yabai skhd borders kitty zellij)
+PACKAGES=(yabai skhd borders kitty zellij raycast)
 
 for pkg in "${PACKAGES[@]}"; do
     if [ -d "$pkg" ]; then
