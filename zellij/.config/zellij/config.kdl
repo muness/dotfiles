@@ -379,7 +379,8 @@ mouse_mode true
 // copy_command "wl-copy"                    // wayland
 // copy_command "pbcopy"                     // osx
 // 
-copy_command "pbcopy"
+// Use Zellij's OSC 52 clipboard integration on all platforms. A terminal-specific
+// copy_command such as pbcopy or wl-copy can live in a host-local override.
  
 // Choose the destination for copied text
 // Allows using the primary selection buffer (on x11/wayland) instead of the system clipboard.

@@ -1,11 +1,9 @@
-# Added by OrbStack: command-line tools and integration
-# This won't be added again if you remove it.
-source ~/.orbstack/shell/init.zsh 2>/dev/null || :
+if [[ $OSTYPE == darwin* ]]; then
+  [[ -r "$HOME/.orbstack/shell/init.zsh" ]] && source "$HOME/.orbstack/shell/init.zsh"
+  [[ -d /Applications/Obsidian.app/Contents/MacOS ]] && \
+    path+=(/Applications/Obsidian.app/Contents/MacOS)
+fi
 
-# Homebrew and core PATH now in .zshenv for all shell contexts
-
-# Added by Obsidian
-export PATH="$PATH:/Applications/Obsidian.app/Contents/MacOS"
-
-# Added by ReconAI local dev setup
-export PATH="$PATH:$HOME/.dotnet/tools"
+[[ -d "$HOME/.dotnet/tools" ]] && path+=("$HOME/.dotnet/tools")
+typeset -U path PATH
+export PATH

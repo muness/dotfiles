@@ -51,9 +51,9 @@ if [ -d ".espanso" ]; then
     ln -sf "$DOTFILES_DIR/.espanso" "$HOME/.espanso"
 fi
 
-if [ -f ".vimrc" ]; then
+if [ -f "vim/.vimrc" ]; then
     echo "  Linking .vimrc..."
-    ln -sf "$DOTFILES_DIR/.vimrc" "$HOME/.vimrc"
+    ln -sf "$DOTFILES_DIR/vim/.vimrc" "$HOME/.vimrc"
 fi
 
 # Start services

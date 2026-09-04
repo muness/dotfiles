@@ -1,23 +1,41 @@
 # Dotfiles
 
-My macOS setup: tiling windows, keyboard-driven workflow, and terminal config. Uses [GNU Stow](https://www.gnu.org/software/stow/) to symlink configs into place.
+Cross-platform shell, editor, and terminal-multiplexer configuration plus the
+macOS window-management setup. [GNU Stow](https://www.gnu.org/software/stow/)
+symlinks selected packages into the home directory.
 
 ## What's Included
 
-| Tool | What it does |
-|------|--------------|
-| [yabai](https://github.com/koekeishiya/yabai) | Automatically arranges windows in a grid (tiling window manager) |
-| [skhd](https://github.com/koekeishiya/skhd) | Global keyboard shortcuts |
-| [borders](https://github.com/FelixKratz/JankyBorders) | Colored borders around the focused window |
-| [kitty](https://sw.kovidgoyal.net/kitty/) | Primary terminal; starts [Zellij](https://zellij.dev/) automatically (see below) |
-| [ghostty](https://ghostty.org/) | Optional config in `ghostty/` (not stowed by default) |
-| [zellij](https://zellij.dev/) | Multiplexer inside Kitty (tabs, panes); launched via Kitty `startup_session` |
-| [Raycast](https://raycast.com/) script commands | Run the centered-master layout actions from Raycast |
-| [espanso](https://espanso.org/) | Type shortcuts that expand into longer text |
-| zsh | Shell startup files (.zshenv, .zprofile, .zshrc) |
-| vim | Editor config |
+| Tool | Platform | What it does |
+|------|----------|--------------|
+| zsh | Linux/macOS | Portable shell startup, history, completion, mise, and optional enhancements |
+| [Zellij](https://zellij.dev/) | Linux/macOS | Terminal multiplexer with shared keybindings |
+| vim | Linux/macOS | Small editor baseline |
+| [yabai](https://github.com/koekeishiya/yabai) | macOS | Tiling window manager |
+| [skhd](https://github.com/koekeishiya/skhd) | macOS | Global keyboard shortcuts |
+| [borders](https://github.com/FelixKratz/JankyBorders) | macOS | Focused-window borders |
+| [Kitty](https://sw.kovidgoyal.net/kitty/) | macOS | Primary terminal and Zellij launcher |
+| [Ghostty](https://ghostty.org/) | macOS | Optional terminal configuration |
+| [Raycast](https://raycast.com/) | macOS | Centered-master script commands |
+| [espanso](https://espanso.org/) | macOS | Text expansion configuration |
 
-## Quick Start
+## Linux quick start
+
+The Linux installer supports Debian and Ubuntu. It installs only portable CLI
+packages, installs Zellij through mise, backs up conflicting files under
+`~/.local/state/dotfiles-backup`, stows `zsh`, `zellij`, and `vim`, validates the
+configuration, and changes the login shell to zsh.
+
+```bash
+git clone https://github.com/muness/dotfiles.git ~/src/dotfiles
+cd ~/src/dotfiles
+./install-linux.sh
+```
+
+It does not stow or install macOS applications, terminal-emulator settings,
+secrets, Git identity, or host service configuration.
+
+## macOS quick start
 
 ```bash
 git clone https://github.com/muness/dotfiles.git ~/dotfiles
@@ -135,6 +153,7 @@ compiled bundles. Script commands are the supported way to add your own.
 
 ```
 dotfiles/
+├── install-linux.sh
 ├── yabai/      → ~/.config/yabai/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/
@@ -143,8 +162,8 @@ dotfiles/
 ├── zellij/     → ~/.config/zellij/
 ├── raycast/    → ~/.config/raycast/scripts/
 ├── zsh/        → ~/.zshenv, ~/.zprofile, ~/.zshrc
+├── vim/         → ~/.vimrc
 ├── .espanso/   → ~/.espanso/
-├── .vimrc      → ~/.vimrc
 ├── Brewfile
 └── install.sh
 ```
@@ -173,7 +192,7 @@ brew services start borders
 ## Updating
 
 ```bash
-cd ~/dotfiles
+cd ~/src/dotfiles  # Linux; use ~/dotfiles if that is your macOS clone
 git pull
 stow <package>  # re-stow if configs changed
 ```
