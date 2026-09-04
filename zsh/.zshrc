@@ -1,5 +1,6 @@
 # If you come from bash you might have to change your $PATH.
 export PATH="$HOME/.cargo/bin:$HOME/bin:$HOME/.local/bin:/usr/local/bin:$PATH"
+export PATH="/opt/homebrew/opt/coreutils/libexec/gnubin:$PATH"
 
 export FPATH=$HOME/.config/.zsh/functions:$FPATH
 

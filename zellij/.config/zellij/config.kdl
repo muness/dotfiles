@@ -12,6 +12,8 @@ keybinds clear-defaults=true {
         bind "Alt t" { SwitchToMode "tab"; }
         // Close focused pane without entering pane/tab mode (x in tab mode closes the tab)
         bind "Alt Shift x" { CloseFocus; }
+        bind "Ctrl Shift ]" { GoToNextTab; }
+        bind "Ctrl Shift [" { GoToPreviousTab; }
     }
     pane {
         bind "left" { MoveFocus "left"; }
