@@ -3,8 +3,8 @@
 # @raycast.title Centered Master: Reset Width
 # @raycast.mode silent
 # @raycast.packageName Centered Master
-# @raycast.icon 🎯
-# @raycast.description Centered Master: Reset Width (yabai centered master layout)
+# @raycast.icon 🎚️
+# @raycast.description Centered Master: Reset Width
 # @raycast.author Muness Castle
 
 exec "$HOME/.config/yabai/centered-master.sh" width 0.5

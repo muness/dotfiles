@@ -4,7 +4,7 @@
 # @raycast.mode fullOutput
 # @raycast.packageName Centered Master
 # @raycast.icon 📋
-# @raycast.description Centered Master: Status (yabai centered master layout)
+# @raycast.description Centered Master: Status
 # @raycast.author Muness Castle
 
 exec "$HOME/.config/yabai/centered-master.sh" status

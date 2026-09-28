@@ -105,21 +105,24 @@ All shortcuts use **Option (⌥)** as the modifier.
 
 ### Centered Master Layout
 
-An opt-in, per-Space layout: one master window centred on screen, other windows
-in left and right columns. See
+One master window centred on screen, others in left/right columns. Implemented
+as a facade over yabai rather than a BSP layout — see
 [yabai/.config/yabai/centered-master.md](yabai/.config/yabai/centered-master.md)
-for how it works and its current limitations.
+for how it works and what it trades away.
 
 | Key | Action |
 |-----|--------|
-| `⌥ ⇧ c` | Toggle the layout for the current space |
-| `⌥ ↩` | Promote the focused window to master |
+| `⌥ ↩` | Focused window becomes master; centre this space |
+| `⌥ ⇧ ↩` | Release the space back to bsp |
 | `⌥ ⌘ h` / `⌥ ⌘ l` | Narrow / widen the master |
 | `⌥ ⌘ 0` | Reset master width to 50% |
-| `⌥ ⇧ r` | Repair: rebuild the layout from scratch |
+| `⌥ ⇧ r` | Re-render if something drifted |
 
-These need skhd running. If it is not (see below), use the Raycast commands
-instead.
+A space is centred iff it has a master; there is no enable flag. The `⌥ hjkl`
+focus and swap cluster routes through the same script and behaves exactly as
+before on spaces that are not centred.
+
+Needs skhd running; if it is not, use the Raycast commands below.
 
 ## Raycast Script Commands
 

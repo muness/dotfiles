@@ -1,8 +1,5 @@
 # Centered master layout for yabai
 
-Hyprland/dwm-style centered master, opt-in per Space, implemented on top of
-yabai's native BSP tree.
-
 ```
 +--------+------------------+--------+
 | left 0 |                  | right0 |
@@ -11,70 +8,100 @@ yabai's native BSP tree.
 +--------+------------------+--------+
 ```
 
-One designated master window is centred on the display at a configurable
-fraction of the usable width (default 50%) and runs full height. Every other
-managed window goes into a left or a right column, vertically tiled.
+One master window centred on screen at a configurable fraction of the usable
+width, full height. Everything else is distributed between a left and a right
+column. The side columns keep their width even when empty, so the master stays
+centred at one and two windows.
+
+## It is a facade, not a BSP plugin
+
+This does **not** manipulate yabai's BSP tree. It owns the layout model — a
+master plus two ordered columns — and renders it by setting absolute frames, the
+way dwm and Hyprland compute layout as a pure function of the window list.
+yabai is demoted to two roles: event source, and the thing that decides which
+windows are worth managing.
+
+An earlier version did try to drive the tree, and could not be made reliable:
+
+* `window --warp <id>` is documented as "re-insert the selected window,
+  splitting the given window", but in practice reorders at the target's level
+  rather than splitting the target leaf. Results depend on the tree you started
+  from.
+* `window --insert <dir>` is a toggle, and its state is not exposed by
+  `query`, so it cannot be set deterministically from outside the process.
+
+Owning the model removes both problems, at the cost described under
+*Trade-offs*.
 
 ## Keys
 
 | Key | Action |
 | --- | --- |
-| `alt + shift - c` | toggle the layout on/off for the current Space |
-| `alt - return` | promote the focused window to master |
-| `alt + cmd - l` / `alt + cmd - h` | widen / narrow the master by 5% |
-| `alt + cmd - 0` | reset the master to 50% |
-| `alt + shift - r` | repair: forget the remembered columns, rebuild |
+| `⌥ ↩` | focused window becomes master; centre this Space |
+| `⌥ ⇧ ↩` | release the Space back to yabai's bsp |
+| `⌥ ⌘ l` / `⌥ ⌘ h` | widen / narrow the master by 5% |
+| `⌥ ⌘ 0` | reset master to 50% |
+| `⌥ ⇧ r` | re-render, if something has drifted |
+| `⌥ h/j/k/l` | focus — resolved against the layout on a managed Space |
+| `⌥ ⇧ h/j/k/l` | swap the focused window with that neighbour |
 
-Focusing a window never promotes it. Only `alt - return` does.
+Focusing never promotes. Only `⌥ ↩` changes the master.
+
+The `⌥ hjkl` cluster routes through this script and falls through to plain
+yabai (including the display hop) on any Space that is not managed, so
+unmanaged Spaces behave exactly as they always did.
 
 ## CLI
 
 ```
-~/.config/yabai/centered-master.sh status          # per-space state
-~/.config/yabai/centered-master.sh enable  [space]
-~/.config/yabai/centered-master.sh disable [space]
+~/.config/yabai/centered-master.sh status
+~/.config/yabai/centered-master.sh center   [space]
+~/.config/yabai/centered-master.sh uncenter [space]
 ~/.config/yabai/centered-master.sh width 0.6
-~/.config/yabai/centered-master.sh reflow  [space] # idempotent re-apply
-~/.config/yabai/centered-master.sh repair  [space]
+~/.config/yabai/centered-master.sh focus west
+~/.config/yabai/centered-master.sh apply    [space]
 ```
 
-`CM_DEBUG=1` writes a trace to
-`~/.local/state/yabai-centered-master/log`.
+`CM_DEBUG=1` writes a trace to `~/.local/state/yabai-centered-master/log`.
 
-## How it works
+## Trade-offs
 
-The layout is a plain BSP tree, so native focus, `--swap`, `--warp` and mouse
-resizing keep working:
+Managed windows are floating, so yabai's own tree operations no longer apply to
+them. What that costs, and what replaces it:
 
-```
-root (vertical split)
-|-- left column   (chain of horizontal splits)
-`-- node (vertical split)
-    |-- MASTER
-    `-- right column (chain of horizontal splits)
-```
+| Lost | Replacement |
+| --- | --- |
+| tree-based directional focus | resolved against the model (`focus <dir>`) |
+| `--swap` / `--warp` | `swap <dir>`, which exchanges slots in the model |
+| mouse drag-to-swap | none — the window is snapped back on the next render |
+| divider drag-resize | none — use `width` for the master; column heights are fixed equal |
 
-Two things cannot be expressed by the tree alone:
+## Known limits
 
-* **An empty side column.** With only one or two windows there is no node to
-  hold the empty side, so the per-Space `left_padding` / `right_padding` is
-  inflated instead. The master stays centred and the unused side is blank.
-* **`auto_balance`.** It would immediately flatten the ratios, so it is turned
-  off *for opted-in Spaces only* (it is a Space setting, not a global one).
-  Your other Spaces keep the global `auto_balance on` from `yabairc`.
+* **Off-screen Spaces cannot be rendered.** macOS will not let yabai move a
+  window on a Space that is not on screen without the scripting addition; the
+  calls return success and do nothing. Rendering is therefore deferred, and the
+  `space_changed` signal re-renders a Space when it comes forward.
+* **Apps with a large minimum window size overflow their column.** On a 2087px
+  display at 50% master the side columns are ~506px, and e.g. Claude refuses to
+  go below 600px wide. Lower the master width, or keep such apps out.
+* **A window that is already floating when you run `center` is left alone**, on
+  the assumption you floated it deliberately or a `manage=off` rule did. That
+  is how `yabairc` rules keep working without this script knowing about them.
+* **Minimise and restore loses the slot.** A restored window is re-adopted into
+  whichever column is shorter, not the one it left.
+* Requires `yabai`, `jq`, `bash`, `osascript`. No scripting addition; SIP can
+  stay enabled.
 
-Horizontal placement is applied with `yabai -m window <master> --resize
-left:dx:0` / `right:dx:0`, which walks up to whichever divider owns that edge
-and therefore works at any depth in the tree.
+## State
 
-State lives in `~/.local/state/yabai-centered-master/<space-uuid>.state`, keyed
-by the Space's stable UUID, so it survives Spaces being reordered.
+`~/.local/state/yabai-centered-master/<space-uuid>.state`, keyed by the Space's
+stable UUID. A Space is managed iff that file gives it a master; there is no
+separate enable flag.
 
-## Requirements
-
-`yabai`, `jq`, and `bash`. **No scripting addition and no SIP change** — every
-command used (`--warp`, `--insert`, `--resize`, `--ratio`, `space --padding`,
-`config --space`, `signal`) works with SIP enabled.
+The usable screen rect (menubar and Dock aware) comes from AppKit's
+`NSScreen.visibleFrame` via `osascript`, since yabai only reports the raw
+display frame. It is cached per display and dropped on any display event.
 
 ## Rollback
 
@@ -82,6 +109,6 @@ command used (`--warp`, `--insert`, `--resize`, `--ratio`, `space --padding`,
 ~/dotfiles/yabai/.config/yabai/centered-master-uninstall.sh
 ```
 
-That removes the `cm_*` signals, restores padding and `auto_balance` on every
-opted-in Space, and deletes the state directory. To also remove the config
-lines, restore from `~/dotfiles/.backups/<timestamp>/`.
+Releases every managed Space, removes the `cm_*` signals, and deletes the state
+directory. To remove the config lines too, restore from
+`~/dotfiles/.backups/<timestamp>/`.

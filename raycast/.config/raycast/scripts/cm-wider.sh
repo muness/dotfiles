@@ -4,7 +4,7 @@
 # @raycast.mode silent
 # @raycast.packageName Centered Master
 # @raycast.icon ↔️
-# @raycast.description Centered Master: Wider (yabai centered master layout)
+# @raycast.description Centered Master: Wider
 # @raycast.author Muness Castle
 
 exec "$HOME/.config/yabai/centered-master.sh" width +0.05

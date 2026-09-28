@@ -20,9 +20,12 @@
 .define terminal_apps ["kitty", "wezterm", "terminal", "iterm2"]
 .define browser_apps  ["chrome", "google chrome", "safari", "firefox", "arc"]
 
-# Reusable yabai commands
-.define yabai_focus  : yabai -m window --focus {{1}} || yabai -m display --focus {{1}}
-.define yabai_swap   : yabai -m window --swap {{1}}  || (yabai -m window --display {{1}} && yabai -m display --focus {{1}})
+# Reusable yabai commands.
+# These route through centered-master.sh, which resolves the direction against
+# the centred layout on a managed space and falls through to plain yabai
+# (including the display hop) everywhere else.
+.define yabai_focus  : ~/.config/yabai/centered-master.sh focus {{1}}
+.define yabai_swap   : ~/.config/yabai/centered-master.sh swap  {{1}}
 .define yabai_resize : yabai -m window --resize {{1}}:{{2}}:{{3}}
 
 # Nice to have for toggling apps or scratchpads later (not heavily used below,
@@ -104,22 +107,21 @@ alt - o : @toggle_app("Obsidian")
 
 
 # --------------------------------------------------------
-# Centered master layout (opt-in, per Space)
+# Centered master layout
 # ~/.config/yabai/centered-master.sh
 # --------------------------------------------------------
 
 .define cm : ~/.config/yabai/centered-master.sh {{1}}
 
-# Turn the centered master layout on/off for the current space
-alt + shift - c : @cm("toggle")
+# Focused window becomes master and the space is centred (dwm's mod+Return).
+# Run it on a window that is already master to do nothing.
+alt - return       : @cm("center")
+alt + shift - return : @cm("uncenter")
 
-# Promote the focused window to master (dwm's mod+Return)
-alt - return : @cm("promote")
-
-# Master width. alt+ctrl-h/l are already the native BSP resize, so use cmd.
+# Master width. alt+ctrl-h/l is the native BSP resize, so use cmd.
 alt + cmd - h : @cm("width -0.05")
 alt + cmd - l : @cm("width +0.05")
 alt + cmd - 0 : @cm("width 0.5")
 
-# Forget the remembered columns and lay the space out from scratch
-alt + shift - r : @cm("repair")
+# Re-render if something has drifted.
+alt + shift - r : @cm("apply")
