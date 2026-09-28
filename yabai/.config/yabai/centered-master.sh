@@ -298,6 +298,13 @@ cmd_uncenter(){ space_resolve "${1:-}" || die "no space"
 
 cmd_promote(){ cmd_center "${1:-}"; }
 
+# One key for on/off. Deliberately ignores which window is focused: if the
+# space is centred it is released, full stop. Promoting a different window to
+# master is `center`/`promote`, so that a mis-aimed toggle can never silently
+# reshuffle the layout when you meant to switch it off.
+cmd_toggle(){ space_resolve "${1:-}" || die "no space"; state_load
+    if managed; then cmd_uncenter "$sp_index"; else cmd_center "$sp_index"; fi; }
+
 cmd_width(){ space_resolve "" || die "no space"; state_load
     managed || die "space $sp_index is not centered"
     local a="${1:?usage: width +0.05|-0.05|<fraction>}"
@@ -386,6 +393,7 @@ centered-master.sh -- centered master layout facade over yabai
   center [space]    focused window becomes master; centre the space
   uncenter [space]  release the space back to yabai's bsp
   promote           alias for center
+  toggle [space]    centre if released, release if centred
   width +0.05       master width (also -0.05, or an absolute 0.6)
   focus <dir>       west|east|north|south, resolved against the layout
   swap  <dir>       swap the focused window with its neighbour
@@ -401,6 +409,7 @@ case "${1:-}" in
     center)           shift; cmd_center "$@" ;;
     uncenter)         shift; cmd_uncenter "$@" ;;
     promote)          shift; cmd_promote "$@" ;;
+    toggle)           shift; cmd_toggle "$@" ;;
     width)            shift; cmd_width "$@" ;;
     focus)            shift; cmd_focus "$@" ;;
     swap)             shift; cmd_swap "$@" ;;

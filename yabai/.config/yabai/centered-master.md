@@ -37,15 +37,24 @@ Owning the model removes both problems, at the cost described under
 
 | Key | Action |
 | --- | --- |
-| `⌥ ↩` | focused window becomes master; centre this Space |
-| `⌥ ⇧ ↩` | release the Space back to yabai's bsp |
+| `⌥ ↩` | centre this Space, or release it if already centred |
+| `⌥ ⇧ ↩` | promote the focused window to master |
 | `⌥ ⌘ l` / `⌥ ⌘ h` | widen / narrow the master by 5% |
 | `⌥ ⌘ 0` | reset master to 50% |
 | `⌥ ⇧ r` | re-render, if something has drifted |
 | `⌥ h/j/k/l` | focus — resolved against the layout on a managed Space |
 | `⌥ ⇧ h/j/k/l` | swap the focused window with that neighbour |
 
-Focusing never promotes. Only `⌥ ↩` changes the master.
+Focusing never promotes. Only `⌥ ⇧ ↩` changes the master.
+
+`toggle` deliberately ignores which window is focused: if the Space is centred
+it is released, full stop. That way a mis-aimed toggle can never silently
+reshuffle the layout when you meant to switch it off.
+
+Note that `yabai -m space --layout bsp` will **not** get you out. Managed
+windows are floating, so they are not in the tree and no layout setting
+reaches them; `toggle` / `uncenter` is the only way back, because it is the
+only thing that knows which windows it floated.
 
 The `⌥ hjkl` cluster routes through this script and falls through to plain
 yabai (including the display hop) on any Space that is not managed, so
@@ -55,6 +64,7 @@ unmanaged Spaces behave exactly as they always did.
 
 ```
 ~/.config/yabai/centered-master.sh status
+~/.config/yabai/centered-master.sh toggle   [space]
 ~/.config/yabai/centered-master.sh center   [space]
 ~/.config/yabai/centered-master.sh uncenter [space]
 ~/.config/yabai/centered-master.sh width 0.6

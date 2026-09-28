@@ -112,13 +112,15 @@ for how it works and what it trades away.
 
 | Key | Action |
 |-----|--------|
-| `⌥ ↩` | Focused window becomes master; centre this space |
-| `⌥ ⇧ ↩` | Release the space back to bsp |
+| `⌥ ↩` | Centre this space, or release it if already centred |
+| `⌥ ⇧ ↩` | Promote the focused window to master |
 | `⌥ ⌘ h` / `⌥ ⌘ l` | Narrow / widen the master |
 | `⌥ ⌘ 0` | Reset master width to 50% |
 | `⌥ ⇧ r` | Re-render if something drifted |
 
-A space is centred iff it has a master; there is no enable flag. The `⌥ hjkl`
+A space is centred iff it has a master; there is no enable flag. `yabai -m
+space --layout bsp` will not release it -- managed windows are floating and
+outside the tree, so `⌥ ↩` is the way back. The `⌥ hjkl`
 focus and swap cluster routes through the same script and behaves exactly as
 before on spaces that are not centred.
 
