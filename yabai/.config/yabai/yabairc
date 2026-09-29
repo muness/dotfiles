@@ -90,4 +90,11 @@ done
 yabai -m signal --add event=window_moved   action="$CM nudge" label="cm_window_moved"
 yabai -m signal --add event=window_resized action="$CM nudge" label="cm_window_resized"
 
+# window_destroyed does not fire reliably for floating windows (which every
+# managed window is), so closing a window would leave a hole in the layout.
+# Closing always moves focus, and window_focused does fire, so use it as the
+# close detector. Debounced: the window is not yet gone from `query` when the
+# focus event arrives.
+yabai -m signal --add event=window_focused action="$CM nudge" label="cm_window_focused"
+
 "$CM" apply-visible 2>/dev/null &
