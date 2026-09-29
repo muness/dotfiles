@@ -97,4 +97,11 @@ yabai -m signal --add event=window_resized action="$CM nudge" label="cm_window_r
 # focus event arrives.
 yabai -m signal --add event=window_focused action="$CM nudge" label="cm_window_focused"
 
+# Dead windows that yabai never saw close (Ghostty) keep a reserved tile.
+REAP="$HOME/.config/yabai/reap-ghosts.sh"
+for _ev in window_created window_focused space_changed application_terminated; do
+    yabai -m signal --remove "reap_${_ev}" 2>/dev/null
+    yabai -m signal --add event="$_ev" action="$REAP" label="reap_${_ev}" 2>/dev/null
+done
+
 "$CM" apply-visible 2>/dev/null &
