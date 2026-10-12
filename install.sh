@@ -45,6 +45,9 @@ for pkg in "${PACKAGES[@]}"; do
     fi
 done
 
+# Link only Cargo's configuration; preserve credentials, caches, and existing config backups.
+bash "$DOTFILES_DIR/scripts/setup-cargo.sh"
+
 # Handle dotfiles in root (espanso, vimrc)
 if [ -d ".espanso" ]; then
     echo "  Linking .espanso..."

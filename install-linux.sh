@@ -26,6 +26,9 @@ fi
 if ! command -v zellij >/dev/null 2>&1; then
   mise use --global zellij@latest
 fi
+if ! command -v sccache >/dev/null 2>&1; then
+  mise use --global sccache@latest
+fi
 
 backup_root="${XDG_STATE_HOME:-$HOME/.local/state}/dotfiles-backup"
 backup_dir="$backup_root/$(date -u +%Y%m%dT%H%M%SZ)"
@@ -43,6 +46,7 @@ done
 
 cd "$dotfiles_dir"
 stow --target="$HOME" --restow "${packages[@]}"
+bash "$dotfiles_dir/scripts/setup-cargo.sh"
 
 zsh -n "$HOME/.zshenv" "$HOME/.zprofile" "$HOME/.zshrc"
 zsh -lic 'command -v mise; command -v zellij; printf "zsh configuration: PASS\\n"'

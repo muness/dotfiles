@@ -11,6 +11,7 @@ symlinks selected packages into the home directory.
 | zsh | Linux/macOS | Portable shell startup, history, completion, mise, and optional enhancements |
 | [Zellij](https://zellij.dev/) | Linux/macOS | Terminal multiplexer with shared keybindings |
 | vim | Linux/macOS | Small editor baseline |
+| Cargo + sccache | Linux/macOS | Smaller dev/test debug output and a shared compiler cache |
 | [yabai](https://github.com/koekeishiya/yabai) | macOS | Tiling window manager |
 | [skhd](https://github.com/koekeishiya/skhd) | macOS | Global keyboard shortcuts |
 | [borders](https://github.com/FelixKratz/JankyBorders) | macOS | Focused-window borders |
@@ -21,10 +22,7 @@ symlinks selected packages into the home directory.
 
 ## Linux quick start
 
-The Linux installer supports Debian and Ubuntu. It installs only portable CLI
-packages, installs Zellij through mise, backs up conflicting files under
-`~/.local/state/dotfiles-backup`, stows `zsh`, `zellij`, and `vim`, validates the
-configuration, and changes the login shell to zsh.
+The Linux installer supports Debian and Ubuntu. It installs only portable CLI packages, installs Zellij and sccache through mise, backs up conflicting files under `~/.local/state/dotfiles-backup`, stows `zsh`, `zellij`, `vim`, and Cargo configuration, validates the configuration, and changes the login shell to zsh.
 
 ```bash
 git clone https://github.com/muness/dotfiles.git ~/src/dotfiles
@@ -64,6 +62,16 @@ Kitty is wired so GUI launches (Dock/Finder) still see Homebrew on **`PATH`** (`
 Saving **`~/.config/zellij/config.kdl`** is often picked up live; if keybindings do not change, quit Zellij once and start again.
 
 In **`kitty.conf`**, several **⌘** shortcuts send the same byte sequences Zellij expects after **⌥t** (tabs) or **⌥⇧p** (panes), so macOS-friendly keys still work inside Kitty.
+
+### Rust builds
+
+Both installers link `cargo/.cargo/config.toml` to `~/.cargo/config.toml` and install sccache (Homebrew on macOS, mise on Linux). Dev and test profiles keep line tables for workspace backtraces and omit dependency debug information. Incremental compilation keeps its default behavior.
+
+The setup backs up an existing config, including Cargo's legacy `~/.cargo/config`, under `${XDG_STATE_HOME:-~/.local/state}/dotfiles-backup`. It links only `config.toml`; credentials, registries, and caches remain in the home directory. To apply just this package when Stow and sccache are already installed:
+
+```bash
+bash scripts/setup-cargo.sh
+```
 
 ### Prerequisites
 
@@ -159,6 +167,8 @@ compiled bundles. Script commands are the supported way to add your own.
 ```
 dotfiles/
 ├── install-linux.sh
+├── cargo/      → ~/.cargo/config.toml
+├── scripts/setup-cargo.sh
 ├── yabai/      → ~/.config/yabai/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/

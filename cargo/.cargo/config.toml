@@ -1,0 +1,16 @@
+[build]
+rustc-wrapper = "sccache"
+
+# Keep file/line backtraces without bulky type and variable debug information.
+# Leave incremental compilation at its default for fast local rebuilds.
+[profile.dev]
+debug = "line-tables-only"
+
+[profile.dev.package."*"]
+debug = false
+
+[profile.test]
+debug = "line-tables-only"
+
+[profile.test.package."*"]
+debug = false
