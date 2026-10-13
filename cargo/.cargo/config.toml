@@ -1,5 +1,11 @@
 [build]
 rustc-wrapper = "sccache"
+# Intermediates (dependencies, incremental state) go to this OS's
+# ~/.cargo/build/<hash of the workspace manifest path>; ./target keeps only
+# final binaries, which Cargo re-copies on every build. Keeps the shared
+# /Volumes/src free of per-OS build state. swamp 0.8.7+ links each of these
+# directories back to its project.
+build-dir = "{cargo-cache-home}/build/{workspace-path-hash}"
 
 # Keep file/line backtraces without bulky type and variable debug information.
 # Leave incremental compilation at its default for fast local rebuilds.

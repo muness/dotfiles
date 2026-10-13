@@ -186,14 +186,16 @@ have set odd ownership.
 
 ## Living on a shared tree
 
-- **Cargo:** `.zshenv` sets `CARGO_TARGET_DIR` per git checkout to
-  `~/.cache/cargo-target/<path>`, so build output stays in each OS's home and
-  concurrent builds in different repos don't block each other. A repo whose
-  scripts expect `./target/release/…` can opt out with an `.envrc`:
-  `export CARGO_TARGET_DIR=$PWD/target`. Known ones on the old Mac: swamp
-  (`release-smoke.sh`, `linux-validation.sh`), homelab-infra
-  (`build-assembler.sh`, `verify-uhc.sh`), repo-native-alignment
-  (`prep-worktree.sh`).
+- **Cargo:** `~/.cargo/config.toml` sets
+  `build.build-dir = "{cargo-cache-home}/build/{workspace-path-hash}"`, so the
+  bulk of every build (dependencies, incremental state) lives in each OS's own
+  `~/.cargo/build/`, keyed by the checkout's path. `./target` keeps only final
+  binaries, so scripts that run `target/release/…` keep working. Cargo
+  re-copies those binaries on every build, even a no-op one, so the first
+  `cargo build` after switching OS replaces the other OS's binary.
+- **Disk cleanup:** swamp observes every 15 minutes on both OSes and links each
+  `~/.cargo/build/<hash>` directory back to its project. Clean up from
+  `swamp report --view reclaim` or the `swamp` TUI; no separate cleanup job.
 - **Node and Python:** `node_modules/` and `.venv/` hold native code. After
   switching OS, run `pnpm install` / `uv sync` in a project before using it.
   Keep long-running services (launch agents, systemd units) pointed at venvs

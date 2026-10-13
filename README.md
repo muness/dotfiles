@@ -12,7 +12,7 @@ symlinks selected packages into the home directory.
 | vim | Linux/macOS | Small editor baseline |
 | git | Linux/macOS | Identity, 1Password SSH signing, gh credentials; per-machine bits in `~/.gitconfig.local` |
 | mise | Linux/macOS | Global language toolchains (`~/.config/mise/config.toml`) |
-| Cargo + sccache | Linux/macOS | Smaller dev/test debug output, a shared compiler cache, and a per-checkout `CARGO_TARGET_DIR` outside the source tree |
+| Cargo + sccache | Linux/macOS | Smaller dev/test debug output, a shared compiler cache, and build intermediates in `~/.cargo/build` instead of the source tree |
 | COSMIC + Fedora apps | Fedora Asahi | Desktop, Chromium, 1Password, flatpaks (see `scripts/linux/fedora.sh`) |
 | Shared `/Volumes/src` | dual boot | ext4 partition both OSes mount; see [docs/asahi-dual-boot.md](docs/asahi-dual-boot.md) |
 | [yabai](https://github.com/koekeishiya/yabai) | macOS | Tiling window manager |
@@ -78,11 +78,12 @@ brew services start borders
 
 ### Rust builds
 
-`.zshenv` sets `CARGO_TARGET_DIR` to `~/.cache/cargo-target/<git root path>`
-on every directory change, so build output never lands in the (possibly
-shared) source tree and builds in different checkouts don't wait on each
-other's lock. To keep `./target` in one repo, add
-`export CARGO_TARGET_DIR=$PWD/target` to its `.envrc`.
+`cargo/.cargo/config.toml` sets `build.build-dir` to
+`{cargo-cache-home}/build/{workspace-path-hash}`: intermediates go to
+`~/.cargo/build/<hash>` on each OS, final binaries stay in `./target`. swamp
+links each of those directories back to its project, so cleanup decisions come
+from `swamp report --view reclaim` (the installers schedule `swamp observe`
+every 15 minutes).
 
 Both installers link `cargo/.cargo/config.toml` to `~/.cargo/config.toml` and install sccache (Homebrew on macOS, mise on Linux). Dev and test profiles keep line tables for workspace backtraces and omit dependency debug information. Incremental compilation keeps its default behavior.
 
