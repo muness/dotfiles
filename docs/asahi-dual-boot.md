@@ -20,6 +20,22 @@ nothing breaks on kernel updates. OpenZFS's dkms RPM still requires
 offers no older kernel to fall back to. Paragon lists macOS 27 support. Either
 choice needs Reduced Security on macOS, because both are kernel extensions.
 
+**Pick the sizes carefully; changing them later is awkward.** The partitions
+sit back to back in this order: macOS, Asahi stub, Fedora (EFI, boot, root),
+`src`, Apple recovery. A filesystem can only grow into free space right after
+it, so:
+
+- Fedora's root can't grow without shrinking `src` from the front, which ext4
+  can't do. In practice you delete `src` and recreate it smaller.
+- `src` has nothing after it but Apple's recovery partition, so it can't grow.
+- macOS can't reclaim space either, because the Asahi stub sits after it.
+- None of this can be done from macOS: `diskutil` can't resize Fedora's btrfs
+  root or the ext4 partition. It has to happen from Fedora.
+
+Recreating `src` is the realistic escape hatch, and it's cheap because it
+only holds git clones: push everything, delete it, rerun
+`src-partition.sh`, then clone again.
+
 ## 1. macOS first boot
 
 1. Create your user. **Use the same short name you will use on Fedora**: the
@@ -51,8 +67,10 @@ curl https://alx.sh | sh
   `tmutil deletelocalsnapshots /` if asked.
 - **OS:** Fedora Asahi Remix **Minimal** (COSMIC gets installed by the
   dotfiles) or KDE if you want a fallback desktop.
-- **Size for the new OS:** enter **200GB**, *not* `max`. Whatever you don't give
-  it stays free for `src`.
+- **Size for the new OS:** at "How much space should be allocated to the new
+  OS?", type **200GB**. Pressing Enter accepts the default, `max`, which takes
+  all the free space and leaves nothing for `src`. The installer then confirms
+  how much it is leaving free; that figure should be ~480 GB.
 - Follow the installer's instructions to the letter: shut down, hold the power
   button until startup options appear, pick the new Fedora entry, and finish
   the boot-policy step in recoveryOS. This only changes the security policy
