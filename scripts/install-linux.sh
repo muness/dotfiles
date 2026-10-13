@@ -1,34 +1,39 @@
 #!/usr/bin/env bash
-# Debian/Ubuntu installer: portable CLI config only.
+# shellcheck source-path=SCRIPTDIR
+# Linux installer: Fedora (including Fedora Asahi Remix) or Debian/Ubuntu.
 set -euo pipefail
-# shellcheck source-path=SCRIPTDIR source=lib.sh
+# shellcheck source=lib.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
 
-apt_packages=(stow zsh zsh-autosuggestions zsh-syntax-highlighting fzf zoxide fd-find bat ripgrep)
-
-if [[ $(uname -s) != Linux ]] || ! command -v apt-get >/dev/null 2>&1; then
-  echo 'This installer supports Debian/Ubuntu Linux hosts.' >&2
+if [[ $(uname -s) != Linux ]]; then
+  echo 'This installer supports Linux.' >&2
   exit 2
 fi
 
-missing=()
-for package in "${apt_packages[@]}"; do
-  dpkg-query -W -f='${db:Status-Status}' "$package" 2>/dev/null | grep -q '^installed$' || missing+=("$package")
-done
-if ((${#missing[@]})); then
-  sudo apt-get update
-  sudo apt-get install -y --no-install-recommends "${missing[@]}"
-fi
+# shellcheck disable=SC1091
+. /etc/os-release
+case " ${ID:-} ${ID_LIKE:-} " in
+  *" fedora "*)
+    # shellcheck source=linux/fedora.sh
+    source "$dotfiles_dir/scripts/linux/fedora.sh" ;;
+  *" debian "*|*" ubuntu "*)
+    # shellcheck source=linux/debian.sh
+    source "$dotfiles_dir/scripts/linux/debian.sh" ;;
+  *)
+    echo "Unsupported distribution: ${PRETTY_NAME:-unknown}" >&2
+    exit 2 ;;
+esac
 
-if ! command -v mise >/dev/null 2>&1; then
-  echo 'mise is required to install sccache on this host.' >&2
-  exit 2
-fi
-command -v sccache >/dev/null 2>&1 || mise use --global sccache@latest
+# Each distro script defines install_system_packages.
+install_system_packages
 
-backup_conflicts .zshenv .zprofile .zshrc .vimrc
+prepare_gitconfig_local /opt/1Password/op-ssh-sign
+backup_conflicts "${shared_conflicts[@]}"
 stow_packages "${shared_packages[@]}"
 bash "$dotfiles_dir/scripts/setup-cargo.sh"
+install_user_tools
+# Distro scripts may define extra steps that need rustup/mise first.
+if declare -F install_swamp >/dev/null; then install_swamp; fi
 
 zsh -n "$HOME/.zshenv" "$HOME/.zprofile" "$HOME/.zshrc"
 zsh -lic 'command -v mise; printf "zsh configuration: PASS\\n"'

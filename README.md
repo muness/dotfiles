@@ -10,7 +10,11 @@ symlinks selected packages into the home directory.
 |------|----------|--------------|
 | zsh | Linux/macOS | Portable shell startup, history, completion, mise, and optional enhancements |
 | vim | Linux/macOS | Small editor baseline |
-| Cargo + sccache | Linux/macOS | Smaller dev/test debug output and a shared compiler cache |
+| git | Linux/macOS | Identity, 1Password SSH signing, gh credentials; per-machine bits in `~/.gitconfig.local` |
+| mise | Linux/macOS | Global language toolchains (`~/.config/mise/config.toml`) |
+| Cargo + sccache | Linux/macOS | Smaller dev/test debug output, a shared compiler cache, and a per-checkout `CARGO_TARGET_DIR` outside the source tree |
+| COSMIC + Fedora apps | Fedora Asahi | Desktop, Chromium, 1Password, flatpaks (see `scripts/linux/fedora.sh`) |
+| Shared `/Volumes/src` | dual boot | ext4 partition both OSes mount; see [docs/asahi-dual-boot.md](docs/asahi-dual-boot.md) |
 | [yabai](https://github.com/koekeishiya/yabai) | macOS | Tiling window manager |
 | [skhd](https://github.com/koekeishiya/skhd) | macOS | Global keyboard shortcuts |
 | [borders](https://github.com/FelixKratz/JankyBorders) | macOS | Focused-window borders |
@@ -22,25 +26,37 @@ symlinks selected packages into the home directory.
 
 `./install.sh` detects the OS and runs one of two scripts. Both source
 `scripts/lib.sh` for shared helpers and the shared package list
-(`zsh vim`), then run `scripts/setup-cargo.sh`.
+(`zsh vim git mise`), then run `scripts/setup-cargo.sh` and install rustup,
+mise tools, Claude Code and a few uv tools. Stow runs with `--no-folding`, so
+only files are linked and apps can't write state into the repo.
 
 | Script | Adds on top of the shared setup |
 |--------|---------------------------------|
 | `scripts/install-macos.sh` | `Brewfile`, yabai/skhd/borders/raycast packages, espanso link, services |
-| `scripts/install-linux.sh` | apt packages, sccache via mise, login shell change |
+| `scripts/install-linux.sh` | `scripts/linux/fedora.sh` (dnf, COSMIC, flatpaks, 1Password) or `scripts/linux/debian.sh` (apt CLI set), login shell change |
 
 ## Linux quick start
 
-The Linux installer supports Debian and Ubuntu. It installs only portable CLI packages, installs sccache through mise, backs up conflicting files under `~/.local/state/dotfiles-backup`, stows `zsh`, `vim`, and Cargo configuration, validates the configuration, and changes the login shell to zsh.
+**Fedora / Fedora Asahi Remix:** adds the mise, Tailscale and 1Password repos,
+installs the CLI set with dnf, then COSMIC, Chromium, KeePassXC, Syncthing, the
+1Password app and flatpaks (Zed, Obsidian, Vesktop). Set `SKIP_DESKTOP=1` on a
+headless host. Builds swamp from source.
+
+**Debian / Ubuntu:** installs only the portable CLI packages; requires mise.
+
+Both back up conflicting files under `~/.local/state/dotfiles-backup`, stow
+the shared packages and Cargo config, validate zsh, and change the login
+shell to zsh.
 
 ```bash
-git clone https://github.com/muness/dotfiles.git ~/src/dotfiles
-cd ~/src/dotfiles
-./install.sh
+git clone https://github.com/muness/dotfiles.git ~/dotfiles
+~/dotfiles/install.sh
 ```
 
-It does not stow or install macOS applications, terminal-emulator settings,
-secrets, Git identity, or host service configuration.
+Secrets, `~/.ssh/config` and host services are not managed here.
+
+For the macOS + Fedora Asahi dual boot with a shared source partition, follow
+[docs/asahi-dual-boot.md](docs/asahi-dual-boot.md).
 
 ## macOS quick start
 
@@ -61,6 +77,12 @@ brew services start borders
 ```
 
 ### Rust builds
+
+`.zshenv` sets `CARGO_TARGET_DIR` to `~/.cache/cargo-target/<git root path>`
+on every directory change, so build output never lands in the (possibly
+shared) source tree and builds in different checkouts don't wait on each
+other's lock. To keep `./target` in one repo, add
+`export CARGO_TARGET_DIR=$PWD/target` to its `.envrc`.
 
 Both installers link `cargo/.cargo/config.toml` to `~/.cargo/config.toml` and install sccache (Homebrew on macOS, mise on Linux). Dev and test profiles keep line tables for workspace backtraces and omit dependency debug information. Incremental compilation keeps its default behavior.
 
@@ -166,6 +188,11 @@ dotfiles/
 ├── install.sh            (dispatches to scripts/install-{macos,linux}.sh)
 ├── cargo/      → ~/.cargo/config.toml
 ├── scripts/              (lib.sh, install-macos.sh, install-linux.sh, setup-cargo.sh)
+│   ├── linux/            (fedora.sh, debian.sh, common.sh, 1password.sh, hqplayer-distrobox.sh)
+│   └── dualboot/         (src-partition.sh, src-mount-linux.sh, src-macos.sh, src-doctor.sh, src-migrate.sh)
+├── docs/asahi-dual-boot.md
+├── git/        → ~/.gitconfig, ~/.config/git/ignore
+├── mise/       → ~/.config/mise/config.toml
 ├── yabai/      → ~/.config/yabai/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/
@@ -199,7 +226,7 @@ brew services start borders
 ## Updating
 
 ```bash
-cd ~/src/dotfiles  # Linux; use ~/dotfiles if that is your macOS clone
+cd ~/dotfiles
 git pull
 stow <package>  # re-stow if configs changed
 ```
@@ -208,5 +235,5 @@ stow <package>  # re-stow if configs changed
 
 ```bash
 cd ~/dotfiles
-stow -D yabai skhd borders zsh vim raycast
+stow -D yabai skhd borders tern zsh vim git mise raycast
 ```

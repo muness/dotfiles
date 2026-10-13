@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
+# shellcheck source-path=SCRIPTDIR
 # macOS installer: shared config plus the tiling/terminal stack.
 set -euo pipefail
-# shellcheck source-path=SCRIPTDIR source=lib.sh
+# shellcheck source=lib.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
 
 # Packages that only make sense on macOS.
@@ -11,20 +12,23 @@ if [[ $(uname -s) != Darwin ]]; then
   echo 'This installer supports macOS.' >&2
   exit 2
 fi
-if ! command -v brew >/dev/null 2>&1; then
-  echo 'Homebrew not found. Install it from https://brew.sh' >&2
-  exit 1
+if ! command -v brew >/dev/null 2>&1 && [[ ! -x /opt/homebrew/bin/brew ]]; then
+  echo "Installing Homebrew (also installs the Xcode Command Line Tools)..."
+  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
 echo "Installing Brewfile dependencies..."
 brew bundle --file="$dotfiles_dir/Brewfile"
 
-backup_conflicts .zshenv .zprofile .zshrc .vimrc "Library/Application Support/Tern/settings.json"
+prepare_gitconfig_local /Applications/1Password.app/Contents/MacOS/op-ssh-sign
+backup_conflicts "${shared_conflicts[@]}" "Library/Application Support/Tern/settings.json"
 echo "Stowing configuration packages..."
 stow_packages "${shared_packages[@]}" "${macos_packages[@]}"
-# Tern keeps daemon state next to settings.json, so link only the file, never the directory.
-stow --dir="$dotfiles_dir" --target="$HOME" --no-folding --restow tern
+# Tern keeps daemon state next to settings.json; --no-folding keeps it out of the repo.
+stow_packages tern
 bash "$dotfiles_dir/scripts/setup-cargo.sh"
+install_user_tools
 
 # espanso reads ~/.espanso as a whole directory, so it is linked rather than stowed.
 ln -sfn "$dotfiles_dir/.espanso" "$HOME/.espanso"
@@ -42,4 +46,5 @@ Installation complete. Next steps:
   2. For full yabai functionality, partially disable SIP:
      https://github.com/koekeishiya/yabai/wiki/Disabling-System-Integrity-Protection
   3. Restart your terminal.
+  4. Dual boot with a shared /Volumes/src: see docs/asahi-dual-boot.md.
 MSG

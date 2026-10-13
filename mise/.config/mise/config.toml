@@ -1,0 +1,9 @@
+[tools]
+bun = "latest"
+node = "latest"
+pnpm = "latest"
+python = "3.12.8"
+ruby = "3.3.6"
+go = "1.23.5"
+duckdb = "1.3.2"
+dotnet = "latest"
