@@ -29,6 +29,7 @@ stow_packages "${shared_packages[@]}" "${macos_packages[@]}"
 stow_packages tern
 bash "$dotfiles_dir/scripts/setup-cargo.sh"
 install_user_tools
+schedule_swamp
 
 # espanso reads ~/.espanso as a whole directory, so it is linked rather than stowed.
 ln -sfn "$dotfiles_dir/.espanso" "$HOME/.espanso"

@@ -93,3 +93,14 @@ install_user_tools() {
     mise exec node -- npm install -g @openai/codex || true
   fi
 }
+
+# swamp's scheduled observation is the source for every disk-cleanup decision.
+# On Linux the collector keeps a change list so each run walks only what moved.
+schedule_swamp() {
+  command -v swamp >/dev/null 2>&1 || { echo "warning: swamp not installed; skipping its schedule" >&2; return; }
+  if [[ $(uname -s) == Linux ]]; then
+    swamp schedule --every 15m --collector
+  else
+    swamp schedule --every 15m
+  fi
+}
