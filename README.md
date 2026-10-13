@@ -189,7 +189,7 @@ dotfiles/
 ├── cargo/      → ~/.cargo/config.toml
 ├── scripts/              (lib.sh, install-macos.sh, install-linux.sh, setup-cargo.sh)
 │   ├── linux/            (fedora.sh, debian.sh, common.sh, 1password.sh, hqplayer-distrobox.sh)
-│   └── dualboot/         (src-partition.sh, src-mount-linux.sh, src-macos.sh, src-doctor.sh, src-migrate.sh)
+│   └── dualboot/         (src-partition.sh, src-mount-linux.sh, src-macos.sh, src-doctor.sh)
 ├── docs/asahi-dual-boot.md
 ├── git/        → ~/.gitconfig, ~/.config/git/ignore
 ├── mise/       → ~/.config/mise/config.toml

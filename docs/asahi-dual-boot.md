@@ -160,17 +160,11 @@ Then remove `X-mount.idmap=…` from the fstab line. Files will show group 20
 Paragon's install sets up auto-mount; enable it in the extFS app if the volume
 does not appear after reboots.
 
-## 6. Move repositories over
+## 6. Clone repositories
 
-From the new Mac (either OS), with the old Mac reachable:
-
-```bash
-scripts/dualboot/src-migrate.sh old-mac.local:src/ --dry-run
-scripts/dualboot/src-migrate.sh old-mac.local:src/
-```
-
-It skips `target/`, `node_modules/`, `.venv/` and similar, since those are
-built for one OS.
+Clone fresh into `~/src` (which is `/Volumes/src`) from either OS. Run
+`src-doctor.sh` afterwards if you cloned as root or from a tool that might
+have set odd ownership.
 
 ## Living on a shared tree
 
