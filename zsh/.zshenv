@@ -25,20 +25,3 @@ if [[ $OSTYPE == darwin* ]]; then
   fi
 fi
 
-# Keep Cargo build output out of source trees, one directory per workspace.
-# /Volumes/src is shared between macOS and Linux, and a target/ built on one
-# OS is wrong on the other. A single global target dir would serialise
-# concurrent builds (agents, worktrees) on Cargo's lock, so key it by the
-# enclosing git root. Outside a git checkout Cargo uses ./target as usual.
-_cargo_target_dir() {
-  local dir=${PWD:A}
-  while [[ $dir != / && ! -e $dir/.git ]]; do dir=${dir:h}; done
-  if [[ -e $dir/.git ]]; then
-    export CARGO_TARGET_DIR="${XDG_CACHE_HOME:-$HOME/.cache}/cargo-target/${${dir#/}//\//%}"
-  else
-    unset CARGO_TARGET_DIR
-  fi
-}
-autoload -Uz add-zsh-hook
-add-zsh-hook chpwd _cargo_target_dir
-_cargo_target_dir
