@@ -1,3 +1,0 @@
-# Session uses an absolute Zellij path so Dock/GUI launches never depend on PATH resolution.
-cd ~
-launch /opt/homebrew/bin/zellij attach --create default-session

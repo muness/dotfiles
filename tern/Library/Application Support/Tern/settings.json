@@ -1,0 +1,8 @@
+{
+  "copy_on_select": true,
+  "link_click": "Command",
+  "font_size": 17,
+  "files": {
+    "auto_save": "on_focus_change"
+  }
+}

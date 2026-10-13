@@ -1,6 +1,6 @@
 # Dotfiles
 
-Cross-platform shell, editor, and terminal-multiplexer configuration plus the
+Cross-platform shell and editor configuration plus the
 macOS window-management setup. [GNU Stow](https://www.gnu.org/software/stow/)
 symlinks selected packages into the home directory.
 
@@ -9,25 +9,34 @@ symlinks selected packages into the home directory.
 | Tool | Platform | What it does |
 |------|----------|--------------|
 | zsh | Linux/macOS | Portable shell startup, history, completion, mise, and optional enhancements |
-| [Zellij](https://zellij.dev/) | Linux/macOS | Terminal multiplexer with shared keybindings |
 | vim | Linux/macOS | Small editor baseline |
 | Cargo + sccache | Linux/macOS | Smaller dev/test debug output and a shared compiler cache |
 | [yabai](https://github.com/koekeishiya/yabai) | macOS | Tiling window manager |
 | [skhd](https://github.com/koekeishiya/skhd) | macOS | Global keyboard shortcuts |
 | [borders](https://github.com/FelixKratz/JankyBorders) | macOS | Focused-window borders |
-| [Kitty](https://sw.kovidgoyal.net/kitty/) | macOS | Primary terminal and Zellij launcher |
-| [Ghostty](https://ghostty.org/) | macOS | Optional terminal configuration |
+| Tern | macOS | Terminal settings (`settings.json` only; daemon state is not linked) |
 | [Raycast](https://raycast.com/) | macOS | Centered-master script commands |
 | [espanso](https://espanso.org/) | macOS | Text expansion configuration |
 
+## Layout of the installers
+
+`./install.sh` detects the OS and runs one of two scripts. Both source
+`scripts/lib.sh` for shared helpers and the shared package list
+(`zsh vim`), then run `scripts/setup-cargo.sh`.
+
+| Script | Adds on top of the shared setup |
+|--------|---------------------------------|
+| `scripts/install-macos.sh` | `Brewfile`, yabai/skhd/borders/raycast packages, espanso link, services |
+| `scripts/install-linux.sh` | apt packages, sccache via mise, login shell change |
+
 ## Linux quick start
 
-The Linux installer supports Debian and Ubuntu. It installs only portable CLI packages, installs Zellij and sccache through mise, backs up conflicting files under `~/.local/state/dotfiles-backup`, stows `zsh`, `zellij`, `vim`, and Cargo configuration, validates the configuration, and changes the login shell to zsh.
+The Linux installer supports Debian and Ubuntu. It installs only portable CLI packages, installs sccache through mise, backs up conflicting files under `~/.local/state/dotfiles-backup`, stows `zsh`, `vim`, and Cargo configuration, validates the configuration, and changes the login shell to zsh.
 
 ```bash
 git clone https://github.com/muness/dotfiles.git ~/src/dotfiles
 cd ~/src/dotfiles
-./install-linux.sh
+./install.sh
 ```
 
 It does not stow or install macOS applications, terminal-emulator settings,
@@ -50,18 +59,6 @@ yabai --start-service
 skhd --start-service
 brew services start borders
 ```
-
-Open **Kitty** from **Applications** or the Dock (⌘Q any old instance first). The config expects Zellij at **`/opt/homebrew/bin/zellij`** (Apple Silicon Homebrew); on Intel Homebrew, edit `kitty/.config/kitty/zellij.session` to use **`/usr/local/bin/zellij`**.
-
-### Kitty + Zellij
-
-Kitty is wired so GUI launches (Dock/Finder) still see Homebrew on **`PATH`** (`env` + `exe_search_path` in `kitty.conf`). A **`startup_session`** loads **`zellij.session`**, which attaches or creates a session named **`default-session`**. New OS windows (⌘N) use the same POSIX **`zellij-launcher.sh`** helper so **`~/.zshrc`** does not run before Zellij.
-
-**Important:** Kitty **does not** apply `startup_session` when you run something like **`kitty ~/project`** or any invocation that passes a program on the command line. Use **`open -a kitty.app`** or the Dock when you want Zellij on startup.
-
-Saving **`~/.config/zellij/config.kdl`** is often picked up live; if keybindings do not change, quit Zellij once and start again.
-
-In **`kitty.conf`**, several **⌘** shortcuts send the same byte sequences Zellij expects after **⌥t** (tabs) or **⌥⇧p** (panes), so macOS-friendly keys still work inside Kitty.
 
 ### Rust builds
 
@@ -166,21 +163,18 @@ compiled bundles. Script commands are the supported way to add your own.
 
 ```
 dotfiles/
-├── install-linux.sh
+├── install.sh            (dispatches to scripts/install-{macos,linux}.sh)
 ├── cargo/      → ~/.cargo/config.toml
-├── scripts/setup-cargo.sh
+├── scripts/              (lib.sh, install-macos.sh, install-linux.sh, setup-cargo.sh)
 ├── yabai/      → ~/.config/yabai/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/
-├── kitty/      → ~/.config/kitty/   (kitty.conf, zellij.session, scripts/zellij-launcher.sh)
-├── ghostty/    → optional; `stow ghostty` if you use it
-├── zellij/     → ~/.config/zellij/
+├── tern/       → ~/Library/Application Support/Tern/settings.json
 ├── raycast/    → ~/.config/raycast/scripts/
 ├── zsh/        → ~/.zshenv, ~/.zprofile, ~/.zshrc
 ├── vim/         → ~/.vimrc
 ├── .espanso/   → ~/.espanso/
-├── Brewfile
-└── install.sh
+└── Brewfile              (macOS only)
 ```
 
 ## Manual Installation
@@ -191,12 +185,10 @@ If you prefer to install selectively:
 brew install stow
 brew install koekeishiya/formulae/yabai koekeishiya/formulae/skhd
 brew install FelixKratz/formulae/borders
-brew install --cask kitty
-brew install zellij
 
 # Symlink only what you want
 cd ~/dotfiles
-stow kitty zellij zsh raycast
+stow zsh vim raycast
 
 # Start tiling stack (same as Quick Start)
 yabai --start-service
@@ -216,7 +208,5 @@ stow <package>  # re-stow if configs changed
 
 ```bash
 cd ~/dotfiles
-stow -D yabai skhd borders kitty zellij zsh raycast
+stow -D yabai skhd borders zsh vim raycast
 ```
-
-Optional: `stow -D ghostty` if you had linked it.
