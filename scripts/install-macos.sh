@@ -27,6 +27,7 @@ echo "Stowing configuration packages..."
 stow_packages "${shared_packages[@]}" "${macos_packages[@]}"
 # Tern keeps daemon state next to settings.json; --no-folding keeps it out of the repo.
 stow_packages tern
+install_mise_tools
 bash "$dotfiles_dir/scripts/setup-cargo.sh"
 install_user_tools
 schedule_swamp

@@ -47,8 +47,8 @@ only holds git clones: push everything, delete it, rerun
    git clone https://github.com/muness/dotfiles.git ~/dotfiles
    ~/dotfiles/install.sh
    ```
-   This installs Homebrew (and the Xcode Command Line Tools), the Brewfile,
-   rustup, mise tools, and Claude Code, and stows the configs.
+   This runs the `mac` profile: Homebrew (and the Xcode Command Line Tools), the
+   Brewfile, the mise CLI set and runtimes, rustup, and Claude Code, and stows the configs.
 4. Open 1Password, sign in, and turn on **Settings → Developer → Use the SSH
    agent** and **Integrate with 1Password CLI**. Commit signing goes through
    1Password's `op-ssh-sign`.

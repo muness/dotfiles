@@ -7,3 +7,22 @@ ruby = "3.3.6"
 go = "1.23.5"
 duckdb = "1.3.2"
 dotnet = "latest"
+
+# CLI set that used to be listed separately in the Brewfile, fedora.sh and
+# debian.sh. Every entry ships linux-arm64, linux-x86_64 and macOS builds, so
+# this one list serves the mac, asahi and server profiles.
+starship = "latest"
+atuin = "latest"
+fzf = "latest"
+fd = "latest"
+bat = "latest"
+ripgrep = "latest"
+zoxide = "latest"
+direnv = "latest"
+sccache = "latest"
+uv = "latest"
+gh = "latest"
+jq = "latest"
+shellcheck = "latest"
+shfmt = "latest"
+gitleaks = "latest"

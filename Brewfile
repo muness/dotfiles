@@ -1,4 +1,6 @@
-# macOS packages. Linux equivalents live in scripts/linux/fedora.sh.
+# macOS packages. The portable CLI set (starship, fzf, ripgrep, gh, uv, ...)
+# lives in mise/.config/mise/config.toml and is installed by mise on every OS.
+# Linux system packages live in scripts/linux/fedora.sh.
 
 tap "asmvik/formulae"
 tap "FelixKratz/formulae"
@@ -11,27 +13,12 @@ brew "zsh-autosuggestions"
 brew "zsh-syntax-highlighting"
 brew "stow"
 brew "mise"
-brew "starship"
-brew "atuin"
-brew "direnv"
-brew "zoxide"
-brew "fzf"
-brew "fd"
-brew "bat"
-brew "ripgrep"
 brew "coreutils"
-brew "jq"
 brew "wget"
 
 # Development
 brew "git"
-brew "gh"
-brew "uv"
-brew "sccache"
-brew "shellcheck"
-brew "shfmt"
 brew "bats-core"
-brew "gitleaks"
 brew "cmake"
 brew "ninja"
 brew "automake"

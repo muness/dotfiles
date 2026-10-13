@@ -30,6 +30,7 @@ install_system_packages
 prepare_gitconfig_local /opt/1Password/op-ssh-sign
 backup_conflicts "${shared_conflicts[@]}"
 stow_packages "${shared_packages[@]}"
+install_mise_tools
 bash "$dotfiles_dir/scripts/setup-cargo.sh"
 install_user_tools
 # Distro scripts may define extra steps that need rustup/mise first.

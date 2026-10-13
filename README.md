@@ -24,16 +24,27 @@ symlinks selected packages into the home directory.
 
 ## Layout of the installers
 
-`./install.sh` detects the OS and runs one of two scripts. Both source
-`scripts/lib.sh` for shared helpers and the shared package list
-(`zsh vim git mise`), then run `scripts/setup-cargo.sh` and install rustup,
-mise tools, Claude Code and a few uv tools. Stow runs with `--no-folding`, so
-only files are linked and apps can't write state into the repo.
+`./install.sh` picks a **profile** and runs the matching script. Override with
+`--profile mac|asahi|server` (or `DOTFILES_PROFILE`).
 
-| Script | Adds on top of the shared setup |
-|--------|---------------------------------|
-| `scripts/install-macos.sh` | `Brewfile`, yabai/skhd/borders/raycast packages, espanso link, services |
-| `scripts/install-linux.sh` | `scripts/linux/fedora.sh` (dnf, COSMIC, flatpaks, 1Password) or `scripts/linux/debian.sh` (apt CLI set), login shell change |
+| Profile | Picked when | Runs | Adds |
+|---------|-------------|------|------|
+| `mac` | Darwin | `scripts/install-macos.sh` | `Brewfile` (casks, system packages), yabai/skhd/borders/raycast, espanso link, services |
+| `asahi` | Linux kernel name contains `asahi` | `scripts/install-linux.sh` | `scripts/linux/fedora.sh`: dnf, COSMIC, flatpaks, 1Password |
+| `server` | any other Linux | `scripts/install-linux.sh` with `SKIP_DESKTOP=1` | the same, minus the desktop: the homelab profile |
+
+**One list for the CLI set.** `mise/.config/mise/config.toml` lists the
+portable tools (starship, atuin, fzf, fd, bat, ripgrep, zoxide, direnv,
+sccache, uv, gh, jq, shellcheck, shfmt, gitleaks) plus language runtimes. Every
+profile installs them with `mise install`, so adding a tool is a one-line
+edit there. The Brewfile and the dnf/apt arrays hold only what mise can't:
+shells and zsh plugins, stow, GUI apps, kernel-level and system packages.
+Debian/Ubuntu hosts bootstrap mise itself via `mise.run`.
+
+The installers share `scripts/lib.sh`, which stows `zsh vim git mise` with
+`--no-folding` (only files are linked, so apps can't write state into the
+repo), installs the mise tools, then runs `scripts/setup-cargo.sh` and installs
+rustup, Claude Code and a few uv tools.
 
 ## Linux quick start
 
@@ -42,7 +53,7 @@ installs the CLI set with dnf, then COSMIC, Chromium, KeePassXC, Syncthing, the
 1Password app and flatpaks (Zed, Obsidian, Vesktop). Set `SKIP_DESKTOP=1` on a
 headless host. Builds swamp from source.
 
-**Debian / Ubuntu:** installs only the portable CLI packages; requires mise.
+**Debian / Ubuntu:** installs zsh, stow and git with apt, then bootstraps mise for the rest.
 
 Both back up conflicting files under `~/.local/state/dotfiles-backup`, stow
 the shared packages and Cargo config, validate zsh, and change the login
@@ -85,7 +96,7 @@ links each of those directories back to its project, so cleanup decisions come
 from `swamp report --view reclaim` (the installers schedule `swamp observe`
 every 15 minutes).
 
-Both installers link `cargo/.cargo/config.toml` to `~/.cargo/config.toml` and install sccache (Homebrew on macOS, mise on Linux). Dev and test profiles keep line tables for workspace backtraces and omit dependency debug information. Incremental compilation keeps its default behavior.
+Both installers link `cargo/.cargo/config.toml` to `~/.cargo/config.toml` and install sccache through mise. Dev and test profiles keep line tables for workspace backtraces and omit dependency debug information. Incremental compilation keeps its default behavior.
 
 The setup backs up an existing config, including Cargo's legacy `~/.cargo/config`, under `${XDG_STATE_HOME:-~/.local/state}/dotfiles-backup`. It links only `config.toml`; credentials, registries, and caches remain in the home directory. To apply just this package when Stow and sccache are already installed:
 
@@ -186,14 +197,14 @@ compiled bundles. Script commands are the supported way to add your own.
 
 ```
 dotfiles/
-├── install.sh            (dispatches to scripts/install-{macos,linux}.sh)
+├── install.sh            (picks a profile, runs scripts/install-{macos,linux}.sh)
 ├── cargo/      → ~/.cargo/config.toml
 ├── scripts/              (lib.sh, install-macos.sh, install-linux.sh, setup-cargo.sh)
 │   ├── linux/            (fedora.sh, debian.sh, common.sh, 1password.sh, hqplayer-distrobox.sh)
 │   └── dualboot/         (src-partition.sh, src-mount-linux.sh, src-macos.sh, src-doctor.sh)
 ├── docs/asahi-dual-boot.md
 ├── git/        → ~/.gitconfig, ~/.config/git/ignore
-├── mise/       → ~/.config/mise/config.toml
+├── mise/       → ~/.config/mise/config.toml   (the portable CLI list)
 ├── yabai/      → ~/.config/yabai/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/

@@ -5,13 +5,14 @@
 # shellcheck source=common.sh
 source "$dotfiles_dir/scripts/linux/common.sh"
 
+# The portable CLI set (fzf, fd, bat, rg, zoxide, direnv, atuin, starship, gh,
+# jq, uv, sccache, shellcheck, shfmt, gitleaks) comes from mise, not dnf.
 dnf_packages=(
   # Shell and dotfiles plumbing
-  zsh zsh-autosuggestions zsh-syntax-highlighting stow git git-lfs gh curl wget jq
-  fzf zoxide fd-find bat ripgrep direnv atuin starship
+  zsh zsh-autosuggestions zsh-syntax-highlighting stow git git-lfs curl wget
   # Development
   gcc gcc-c++ clang make cmake ninja-build automake pkgconf-pkg-config openssl-devel
-  protobuf-compiler zig uv sccache ShellCheck shfmt bats gitleaks ansible
+  protobuf-compiler zig bats ansible
   # Java comes from mise; Fedora 44 has no java-17/21 -devel packages.
   # Docs and media
   pandoc vips-tools espeak-ng
@@ -51,9 +52,6 @@ install_system_packages() {
   # Package availability differs between Fedora releases and architectures;
   # report what was skipped rather than failing the whole install.
   sudo dnf install -y --skip-unavailable mise "${dnf_packages[@]}"
-  ensure_sccache
-  ensure_starship
-  ensure_atuin
   sudo systemctl enable --now tailscaled || true
 
   [[ ${SKIP_DESKTOP:-} == 1 ]] && return

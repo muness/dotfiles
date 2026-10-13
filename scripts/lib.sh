@@ -64,6 +64,16 @@ prepare_gitconfig_local() {
   fi
 }
 
+# Install everything in the global mise config (CLI set and language runtimes)
+# and put it on PATH for the rest of the installer. Needs mise and a stowed
+# mise package; setup-cargo.sh and install_user_tools depend on the result.
+install_mise_tools() {
+  command -v mise >/dev/null 2>&1 || { echo 'mise is required' >&2; exit 2; }
+  echo "Installing mise tools..."
+  mise install --yes || echo "warning: some mise tools failed to install" >&2
+  eval "$(mise env -s bash)"
+}
+
 # Per-user toolchains that install the same way on macOS and Linux.
 install_user_tools() {
   if ! command -v rustup >/dev/null 2>&1 && [[ ! -x $HOME/.cargo/bin/rustup ]]; then
@@ -71,11 +81,6 @@ install_user_tools() {
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y --no-modify-path
   fi
   export PATH="$HOME/.cargo/bin:$HOME/.local/bin:$PATH"
-
-  if command -v mise >/dev/null 2>&1; then
-    echo "Installing mise tools..."
-    mise install --yes || echo "warning: some mise tools failed to install" >&2
-  fi
 
   if ! command -v claude >/dev/null 2>&1; then
     echo "Installing Claude Code..."
