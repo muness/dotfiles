@@ -35,6 +35,7 @@ bash "$dotfiles_dir/scripts/setup-cargo.sh"
 install_user_tools
 # Distro scripts may define extra steps that need rustup/mise first.
 if declare -F install_swamp >/dev/null; then install_swamp; fi
+if declare -F install_satty >/dev/null; then install_satty; fi
 schedule_swamp
 
 zsh -n "$HOME/.zshenv" "$HOME/.zprofile" "$HOME/.zshrc"

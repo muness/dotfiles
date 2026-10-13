@@ -24,7 +24,12 @@ dnf_packages=(
   podman distrobox
 )
 
-desktop_packages=(flatpak keepassxc syncthing chromium 1password-cli)
+desktop_packages=(flatpak keepassxc syncthing chromium 1password-cli
+  # Screenshots: cosmic-screenshot captures, Satty annotates (see install_satty).
+  cosmic-screenshot wl-clipboard google-noto-color-emoji-fonts)
+# Satty has no Fedora RPM or Flathub build and its release binary is x86-64
+# only, so it is built from crates.io; these are its build dependencies.
+satty_build_deps=(gtk4-devel libadwaita-devel libepoxy-devel fontconfig-devel)
 flatpaks=(dev.zed.Zed md.obsidian.Obsidian dev.vencord.Vesktop)
 
 add_repos() {
@@ -78,4 +83,12 @@ install_system_packages() {
 install_swamp() {
   command -v swamp >/dev/null 2>&1 && return
   cargo install --locked --git https://github.com/open-horizon-labs/swamp swamp
+}
+
+# Wayland screenshot annotator; pairs with cosmic-screenshot. Desktop only.
+install_satty() {
+  [[ ${SKIP_DESKTOP:-} == 1 ]] && return
+  command -v satty >/dev/null 2>&1 && return
+  sudo dnf install -y --skip-unavailable "${satty_build_deps[@]}"
+  cargo install --locked satty
 }

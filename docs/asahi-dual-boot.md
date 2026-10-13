@@ -91,8 +91,8 @@ curl https://alx.sh | sh
    On Fedora this adds the mise, Tailscale and 1Password repos; installs the
    CLI set, COSMIC (with `cosmic-greeter` if no display manager exists),
    Chromium, KeePassXC, Syncthing, the 1Password arm64 tarball, and flatpaks for
-   Zed, Obsidian, and Vesktop (Discord). Then it builds swamp from source,
-   because swamp has no aarch64 Linux release. `--skip-unavailable` means a
+   Zed, Obsidian, and Vesktop (Discord). Then it builds swamp and Satty from
+   source, because neither has an aarch64 Linux release. `--skip-unavailable` means a
    missing package is reported, not fatal; read the dnf output.
 4. Reboot into COSMIC. Open 1Password and turn on the SSH agent and CLI
    integration, as on macOS.
@@ -215,6 +215,7 @@ have set odd ownership.
 | Discord | cask | Vesktop flatpak (official client is x86_64 only) |
 | HQPlayer Desktop | manual | Debian 13 arm64 build in a distrobox: `scripts/linux/hqplayer-distrobox.sh <deb>`. Desktop 6 lists Debian 13 arm64; check your 5.x downloads for a Debian 12 arm64 build first. Or ask Signalyst for a Fedora aarch64 Desktop build (Embedded has one) |
 | Tern | manual | no Linux build found |
+| Screenshots (Screendrop, ScreenshotX) | apps | `cosmic-screenshot` (dnf) to capture, Satty to annotate. Satty has no RPM, Flathub or aarch64 release, so `install_satty` builds it with `cargo install` |
 | swamp | brew tap | built with `cargo install` |
 | Slack, Zoom, Teams, WhatsApp | apps | browser |
 | Roon, Qobuz | apps | none |
