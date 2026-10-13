@@ -8,9 +8,9 @@ partition that both mount at `/Volumes/src`, with `~/src` pointing at it.
 
 | Partition | Size | Notes |
 |---|---|---|
-| macOS (APFS) | 500 GB | the old Mac used 381 GB: SDKs, toolchains, caches, apps. Asahi wants ≥ 40 GB free inside it |
-| Fedora Asahi (installer-made) | 330 GB | root + /home: its own toolchains and SDKs, flatpaks, containers, `~/.cache/cargo-target` |
-| `src` (ext4) | rest, ~150 GB | shared git clones only; builds go to each OS's `~/.cache`. The old Mac's `~/src` was 14 GB including build output |
+| macOS (APFS) | 350 GB | Linux is the primary OS; the old Mac used 381 GB, so keep big SDKs and models on one side. Asahi wants ≥ 40 GB free inside it |
+| Fedora Asahi (installer-made) | 350 GB | root + /home: its own toolchains and SDKs, flatpaks, containers, `~/.cache/cargo-target` |
+| `src` (ext4) | rest, ~290 GB | shared git clones only; builds go to each OS's `~/.cache`. The old Mac's `~/src` was 14 GB including build output |
 | Asahi stub, EFI, Apple recovery | ~5 GB | the installer manages these; never touch them |
 
 Why ext4 + Paragon extFS rather than OpenZFS: ext4 is in the Asahi kernel, so
@@ -62,15 +62,15 @@ From macOS, in a terminal:
 curl https://alx.sh | sh
 ```
 
-- **Resize:** shrink macOS to **500GB**. The prompt asks for the size macOS
+- **Resize:** shrink macOS to **350GB**. The prompt asks for the size macOS
   *keeps*. Local Time Machine snapshots can block the resize; delete them with
   `tmutil deletelocalsnapshots /` if asked.
 - **OS:** Fedora Asahi Remix **Minimal** (COSMIC gets installed by the
   dotfiles) or KDE if you want a fallback desktop.
 - **Size for the new OS:** at "How much space should be allocated to the new
-  OS?", type **330GB**. Pressing Enter accepts the default, `max`, which takes
+  OS?", type **350GB**. Pressing Enter accepts the default, `max`, which takes
   all the free space and leaves nothing for `src`. The installer then confirms
-  how much it is leaving free; that figure should be ~150 GB.
+  how much it is leaving free; that figure should be ~290 GB.
 - Follow the installer's instructions to the letter: shut down, hold the power
   button until startup options appear, pick the new Fedora entry, and finish
   the boot-policy step in recoveryOS. This only changes the security policy
