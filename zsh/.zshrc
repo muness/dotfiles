@@ -84,8 +84,8 @@ command -v sccache >/dev/null 2>&1 && export RUSTC_WRAPPER=sccache
 alias ll='ls -alF'
 alias la='ls -A'
 alias l='ls -CF'
-if [[ $OSTYPE == linux* && -x /usr/libexec/gcr-ssh-askpass ]]; then
-  export SUDO_ASKPASS=/usr/libexec/gcr-ssh-askpass
+if [[ $OSTYPE == linux* && -x /usr/libexec/openssh/gnome-ssh-askpass ]]; then
+  export SUDO_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass
   alias sudo='sudo -A'
 fi
 if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
