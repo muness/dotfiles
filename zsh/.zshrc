@@ -8,8 +8,8 @@ SAVEHIST=10000
 setopt append_history extended_history hist_expire_dups_first hist_ignore_dups
 setopt hist_ignore_space share_history interactive_comments
 
-export EDITOR=${EDITOR:-vim}
-export VISUAL=${VISUAL:-$EDITOR}
+export EDITOR=vim
+export VISUAL=vim
 export PAGER=${PAGER:-less}
 
 if [[ $OSTYPE == darwin* && -d /opt/homebrew/opt/coreutils/libexec/gnubin ]]; then
