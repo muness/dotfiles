@@ -12,11 +12,16 @@ if [[ $(uname -s) != Darwin ]]; then
   echo 'This installer supports macOS.' >&2
   exit 2
 fi
+keep_sudo_alive
+
 if ! command -v brew >/dev/null 2>&1 && [[ ! -x /opt/homebrew/bin/brew ]]; then
   echo "Installing Homebrew (also installs the Xcode Command Line Tools)..."
   /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 fi
 eval "$(/opt/homebrew/bin/brew shellenv)"
+
+echo "Trusting the third-party tap formulae in the Brewfile..."
+trust_brewfile_formulae "$dotfiles_dir/Brewfile"
 
 echo "Installing Brewfile dependencies..."
 brew bundle --file="$dotfiles_dir/Brewfile"

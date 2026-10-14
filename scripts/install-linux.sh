@@ -10,6 +10,8 @@ if [[ $(uname -s) != Linux ]]; then
   exit 2
 fi
 
+keep_sudo_alive
+
 # shellcheck disable=SC1091
 . /etc/os-release
 case " ${ID:-} ${ID_LIKE:-} " in

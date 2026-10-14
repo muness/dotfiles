@@ -128,3 +128,32 @@ enable_user_services() {
     sudo loginctl enable-linger "$USER" || true
   fi
 }
+
+# Ask for the sudo password once and keep the timestamp fresh until the script
+# exits, so long installs (Homebrew, casks, dnf) don't prompt over and over.
+# The loop shares this terminal's sudo ticket and stops when the script ends.
+keep_sudo_alive() {
+  sudo -v || return 1
+  (
+    while sudo -n true 2>/dev/null; do
+      sleep "${SUDO_KEEPALIVE_INTERVAL:-50}"
+      kill -0 "$$" 2>/dev/null || exit 0
+    done
+  ) &
+  sudo_keepalive_pid=$!
+  # shellcheck disable=SC2064  # expand the pid now, not when the trap fires
+  trap "kill $sudo_keepalive_pid 2>/dev/null || true" EXIT
+}
+
+# Homebrew 7 will not load formulae from third-party taps until you trust them.
+# Trust exactly the tap formulae this Brewfile lists, nothing broader. Taps are
+# added first because trusting needs the tap to exist.
+trust_brewfile_formulae() {
+  local brewfile=$1 tap formula
+  for tap in $(brew bundle list --tap --file="$brewfile"); do
+    brew tap "$tap" || echo "warning: could not tap $tap" >&2
+  done
+  for formula in $(brew bundle list --formula --file="$brewfile" | grep / || true); do
+    brew trust --formula "$formula" || echo "warning: could not trust $formula" >&2
+  done
+}
