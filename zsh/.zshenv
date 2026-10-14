@@ -5,6 +5,12 @@ export PATH
 
 [[ -f "$HOME/.cargo/env" ]] && . "$HOME/.cargo/env"
 
+# Git's SSH signer uses SSH_AUTH_SOCK. Prefer 1Password's agent on Linux when
+# its socket is available; SSH config still controls per-host SSH agent choices.
+if [[ $OSTYPE == linux* && -S "$HOME/.1password/agent.sock" ]]; then
+  export SSH_AUTH_SOCK="$HOME/.1password/agent.sock"
+fi
+
 # Homebrew and macOS Keychain integration stay on macOS.
 if [[ $OSTYPE == darwin* ]]; then
   if [[ -x /opt/homebrew/bin/brew ]]; then
