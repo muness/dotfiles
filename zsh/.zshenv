@@ -15,7 +15,7 @@ if [[ $OSTYPE == darwin* ]]; then
 
   if [[ -z ${OP_SERVICE_ACCOUNT_TOKEN:-} && -x /usr/bin/security ]]; then
     hiphi_op_token=$(/usr/bin/security find-generic-password \
-      -a muness1 \
+      -a "$USER" \
       -s com.openhorizon.codex.1password-service-account \
       -w 2>/dev/null) || hiphi_op_token=
     if [[ -n $hiphi_op_token ]]; then
