@@ -105,13 +105,16 @@ install_user_tools() {
 
 # swamp's scheduled observation is the source for every disk-cleanup decision.
 # On Linux the collector keeps a change list so each run walks only what moved.
+# Never fatal: the schedule is a convenience, and on Linux it needs a systemd
+# user session (a plain console or SSH login may not have one). SKIP_SWAMP=1
+# skips it; run the same command later from a desktop login.
 schedule_swamp() {
+  [[ ${SKIP_SWAMP:-} == 1 ]] && { echo "skipping swamp schedule (SKIP_SWAMP=1)"; return; }
   command -v swamp >/dev/null 2>&1 || { echo "warning: swamp not installed; skipping its schedule" >&2; return; }
-  if [[ $(uname -s) == Linux ]]; then
-    swamp schedule --every 15m --collector
-  else
-    swamp schedule --every 15m
-  fi
+  local flags=(--every 15m)
+  [[ $(uname -s) == Linux ]] && flags+=(--collector)
+  swamp schedule "${flags[@]}" ||
+    echo "warning: swamp schedule failed; rerun 'swamp schedule ${flags[*]}' after logging in to the desktop" >&2
 }
 
 # Enable the stowed systemd user units. Each unit has a ConditionPathExists on
