@@ -1,6 +1,7 @@
 {
   "copy_on_select": true,
   "link_click": "Command",
+  "link_target": "Browser",
   "font_size": 17,
   "files": {
     "auto_save": "on_focus_change"
