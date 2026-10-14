@@ -205,6 +205,23 @@ have set odd ownership.
   runs fsck at boot (`0 2` in fstab); on macOS, use extFS's Verify if it
   refuses to mount.
 
+## Screenshots on Fedora
+
+Bind `shot-annotate` in **Settings → Keyboard → Custom shortcuts**: capture a
+region, annotate in Satty, Enter to save and copy, Escape to discard. Files land
+in `~/Pictures/Screenshots`. `shot-share [file]` uploads one to the homelab and
+copies the link; it works on macOS too. Configure it once per machine in
+`~/.config/shots/env`:
+
+```
+SHOT_UPLOAD_TARGET=homelab:/srv/shots   # scp target
+SHOT_BASE_URL=https://shots.<your-tailnet-host>
+```
+
+The homelab side needs a directory the web server serves read-only. Links use
+a random 18-character name, so anyone with the link can view it; there is no
+listing.
+
 ## App availability on Fedora Asahi (aarch64)
 
 | Need | macOS | Fedora Asahi |

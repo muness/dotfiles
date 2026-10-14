@@ -14,6 +14,7 @@ symlinks selected packages into the home directory.
 | mise | Linux/macOS | Global language toolchains (`~/.config/mise/config.toml`) |
 | Cargo + sccache | Linux/macOS | Smaller dev/test debug output, a shared compiler cache, and build intermediates in `~/.cargo/build` instead of the source tree |
 | COSMIC + Fedora apps | Fedora Asahi | Desktop, Chromium, 1Password, flatpaks (see `scripts/linux/fedora.sh`) |
+| shots | Linux/macOS | `shot-share` uploads an image to the homelab and copies a link; `shot-annotate` (Linux) is cosmic-screenshot into Satty |
 | Shared `/Volumes/src` | dual boot | ext4 partition both OSes mount; see [docs/asahi-dual-boot.md](docs/asahi-dual-boot.md) |
 | [yabai](https://github.com/koekeishiya/yabai) | macOS | Tiling window manager |
 | [skhd](https://github.com/koekeishiya/skhd) | macOS | Global keyboard shortcuts |
@@ -41,7 +42,7 @@ edit there. The Brewfile and the dnf/apt arrays hold only what mise can't:
 shells and zsh plugins, stow, GUI apps, kernel-level and system packages.
 Debian/Ubuntu hosts bootstrap mise itself via `mise.run`.
 
-The installers share `scripts/lib.sh`, which stows `zsh vim git mise` with
+The installers share `scripts/lib.sh`, which stows `zsh vim git mise shots` with
 `--no-folding` (only files are linked, so apps can't write state into the
 repo), installs the mise tools, then runs `scripts/setup-cargo.sh` and installs
 rustup, Claude Code and a few uv tools.
@@ -205,6 +206,7 @@ dotfiles/
 ├── docs/asahi-dual-boot.md
 ├── git/        → ~/.gitconfig, ~/.config/git/ignore
 ├── mise/       → ~/.config/mise/config.toml   (the portable CLI list)
+├── shots/      → ~/.local/bin/shot-{annotate,share}
 ├── yabai/      → ~/.config/yabai/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/

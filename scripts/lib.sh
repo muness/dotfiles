@@ -5,7 +5,7 @@ dotfiles_dir=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)
 
 # Stow packages that are identical on every platform. setup-cargo.sh handles cargo.
 # shellcheck disable=SC2034  # read by the sourcing installers
-shared_packages=(zsh vim git mise)
+shared_packages=(zsh vim git mise shots)
 
 # Files the shared packages would collide with on a fresh or pre-existing home.
 # shellcheck disable=SC2034

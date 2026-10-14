@@ -1,0 +1,38 @@
+#!/usr/bin/env bash
+# Upload an image to the homelab and put an unguessable link on the clipboard.
+# Usage: shot-share [file]   (default: the newest file in $SHOT_DIR)
+#
+# Config goes in ~/.config/shots/env (not in this repo):
+#   SHOT_UPLOAD_TARGET=host:/srv/shots   scp target; a plain directory also works
+#   SHOT_BASE_URL=https://shots.example  what the web server serves that dir as
+set -euo pipefail
+
+# shellcheck disable=SC1091  # user config, absent in the repo
+[[ -r ${XDG_CONFIG_HOME:-$HOME/.config}/shots/env ]] &&
+  . "${XDG_CONFIG_HOME:-$HOME/.config}/shots/env"
+: "${SHOT_UPLOAD_TARGET:?set SHOT_UPLOAD_TARGET in ~/.config/shots/env}"
+: "${SHOT_BASE_URL:?set SHOT_BASE_URL in ~/.config/shots/env}"
+
+dir=${SHOT_DIR:-$HOME/Pictures/Screenshots}
+file=${1:-$(find "$dir" -maxdepth 1 -type f -print0 | xargs -0 -r ls -t | head -n1)}
+[[ -f $file ]] || { echo "shot-share: no file to share" >&2; exit 1; }
+
+if [[ -n ${SHOT_CLIP_CMD:-} ]]; then clip=$SHOT_CLIP_CMD
+elif command -v pbcopy >/dev/null 2>&1; then clip=pbcopy
+elif command -v wl-copy >/dev/null 2>&1; then clip=wl-copy
+else echo "shot-share: no clipboard tool (pbcopy or wl-copy)" >&2; exit 2; fi
+
+# The random name is the access control, so keep it long enough not to guess.
+token=$(head -c 9 /dev/urandom | od -An -tx1 | tr -d ' \n')
+name=$token.${file##*.}
+
+if [[ $SHOT_UPLOAD_TARGET == *:* ]]; then
+  scp -q -- "$file" "$SHOT_UPLOAD_TARGET/$name"
+else
+  mkdir -p "$SHOT_UPLOAD_TARGET"
+  cp -- "$file" "$SHOT_UPLOAD_TARGET/$name"
+fi
+
+url=${SHOT_BASE_URL%/}/$name
+printf '%s' "$url" | $clip
+echo "$url"

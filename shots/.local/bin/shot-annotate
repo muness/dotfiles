@@ -1,0 +1,26 @@
+#!/usr/bin/env bash
+# Capture with cosmic-screenshot, annotate in Satty. Enter saves to $SHOT_DIR
+# and copies the image; Escape discards. Bind this to a key in COSMIC.
+set -euo pipefail
+
+dir=${SHOT_DIR:-$HOME/Pictures/Screenshots}
+mkdir -p "$dir"
+for tool in cosmic-screenshot satty wl-copy; do
+  command -v "$tool" >/dev/null 2>&1 || { echo "shot-annotate: $tool not found" >&2; exit 2; }
+done
+
+# The portal may print the saved file as a path or a file:// URI; if it prints
+# nothing, fall back to the newest PNG under ~/Pictures from the last minute.
+captured=$(cosmic-screenshot --interactive=true --notify=false --save-dir "$dir" | tail -n1 || true)
+captured=${captured#file://}
+if [[ ! -f $captured ]]; then
+  captured=$(find "$HOME/Pictures" -maxdepth 3 -name '*.png' -mmin -1 -print0 2>/dev/null |
+    xargs -0 -r ls -t 2>/dev/null | head -n1 || true)
+fi
+[[ -f $captured ]] || { echo "shot-annotate: capture cancelled or file not found" >&2; exit 1; }
+
+out=$dir/shot-$(date +%Y%m%d-%H%M%S).png
+satty --filename "$captured" --output-filename "$out" \
+  --copy-command wl-copy --save-after-copy --early-exit all \
+  --actions-on-enter save-to-clipboard --actions-on-escape exit
+[[ -f $out ]] && echo "$out"
