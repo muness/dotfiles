@@ -236,7 +236,8 @@ listing.
 | Beeper | cask | not on Flathub; check Beeper's own AppImage |
 | Fork | cask | none; `gitg` or `meld` are in dnf, or use `gh` and the CLI |
 | tectonic | brew | not in mise or dnf; typst (mise) covers most of it |
-| Android command-line tools | cask | not checked for aarch64; `android-tools` (adb, fastboot) is installed via dnf |
+| adb, fastboot | `android-platform-tools` cask | `android-tools` (dnf), verified on aarch64: adb 1.0.41, fastboot 37.0.0 |
+| Android SDK `cmdline-tools` (sdkmanager, avdmanager) | cask | not checked for aarch64; adb and fastboot do not need it |
 | Raycast, Homerow, Maccy, BetterTouchTool, Mountain Duck, OpenMTP, macFUSE | casks | no Linux version; COSMIC's launcher, clipboard and tiling cover the first four |
 | Tuple | cask | none |
 | Screenshots (Screendrop, ScreenshotX) | apps | `cosmic-screenshot` (dnf) to capture, Satty to annotate. Satty has no RPM, Flathub or aarch64 release, so `install_satty` builds it with `cargo install` |
