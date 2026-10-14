@@ -74,11 +74,8 @@ install_mise_tools() {
   mise install --yes || echo "warning: some mise tools failed to install" >&2
   eval "$(mise env -s bash)"
   # setup-cargo.sh needs sccache; stop here with the real cause, not later.
-  local tool
-  for tool in sccache; do
-    command -v "$tool" >/dev/null 2>&1 ||
-      { echo "mise did not install required tool '$tool'; see the mise output above" >&2; exit 1; }
-  done
+  command -v sccache >/dev/null 2>&1 ||
+    { echo "mise did not install sccache, which setup-cargo.sh needs; see the mise output above" >&2; exit 1; }
 }
 
 # Per-user toolchains that install the same way on macOS and Linux.
