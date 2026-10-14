@@ -102,6 +102,10 @@ installs COSMIC, Chromium, KeePassXC, Syncthing, VLC, the 1Password app, the
 ChatGPT desktop app and the flatpaks. swamp and Satty are built from source
 because neither ships an aarch64 Linux release.
 
+The Fedora desktop setup also enables Tailscale's Linux systray in COSMIC's
+Status Area. After setup, run `sudo tailscale up` once to connect this machine
+to the Fleet tailnet.
+
 ## macOS quick start
 
 Run `./install.sh` as above. It also links Tern's `settings.json` and the espanso config. Then grant accessibility to **yabai** and **skhd**: **System Settings → Privacy & Security → Accessibility**

@@ -61,6 +61,17 @@ install_system_packages() {
   sudo systemctl enable --now tailscaled || true
 
   [[ ${SKIP_DESKTOP:-} == 1 ]] && return
+
+  # Tailscale installs a separate StatusNotifier tray app. COSMIC's Status Area
+  # hosts it, but enabling tailscaled alone does not launch the tray at login.
+  if tailscale configure systray --enable-startup=systemd; then
+    systemctl --user daemon-reload
+    systemctl --user enable --now tailscale-systray.service ||
+      echo "warning: could not enable tailscale-systray.service" >&2
+  else
+    echo "warning: could not configure the Tailscale tray startup" >&2
+  fi
+
   sudo dnf install -y --skip-unavailable "${desktop_packages[@]}"
 
   if ! rpm -q cosmic-session >/dev/null 2>&1; then
