@@ -26,7 +26,9 @@ dnf_packages=(
 
 desktop_packages=(flatpak keepassxc syncthing chromium 1password-cli
   # Screenshots: cosmic-screenshot captures, Satty annotates (see install_satty).
-  cosmic-screenshot wl-clipboard google-noto-color-emoji-fonts)
+  # Flameshot is the all-in-one alternative; on Wayland it captures through
+  # the desktop portal, which asks for confirmation per capture.
+  cosmic-screenshot wl-clipboard google-noto-color-emoji-fonts flameshot)
 # Satty has no Fedora RPM or Flathub build and its release binary is x86-64
 # only, so it is built from crates.io; these are its build dependencies.
 satty_build_deps=(gtk4-devel libadwaita-devel libepoxy-devel fontconfig-devel)
