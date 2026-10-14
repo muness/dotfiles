@@ -238,6 +238,7 @@ dotfiles/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/
 ├── tern/       → ~/Library/Application Support/Tern/settings.json
+├── tern-linux/ → ~/.config/tern/settings.json (same settings on Linux)
 ├── raycast/    → ~/.config/raycast/scripts/
 ├── zsh/        → ~/.zshenv, ~/.zprofile, ~/.zshrc
 ├── vim/         → ~/.vimrc

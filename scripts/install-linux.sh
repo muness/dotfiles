@@ -30,8 +30,8 @@ esac
 install_system_packages
 
 prepare_gitconfig_local /opt/1Password/op-ssh-sign
-backup_conflicts "${shared_conflicts[@]}"
-stow_packages "${shared_packages[@]}" systemd
+backup_conflicts "${shared_conflicts[@]}" .config/tern/settings.json
+stow_packages "${shared_packages[@]}" systemd tern-linux
 install_mise_tools
 bash "$dotfiles_dir/scripts/setup-cargo.sh"
 install_user_tools
