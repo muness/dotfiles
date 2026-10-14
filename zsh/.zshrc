@@ -86,7 +86,16 @@ alias la='ls -A'
 alias l='ls -CF'
 if [[ $OSTYPE == linux* && -x /usr/libexec/openssh/gnome-ssh-askpass ]]; then
   export SUDO_ASKPASS=/usr/libexec/openssh/gnome-ssh-askpass
-  alias sudo='sudo -A'
+  unalias sudo 2>/dev/null
+  # Use the graphical prompt only when sudo has no terminal to read from.
+  # Forcing -A in every shell can race the terminal prompt and show both.
+  function sudo {
+    if [[ -t 0 ]]; then
+      command sudo "$@"
+    else
+      command sudo -A "$@"
+    fi
+  }
 fi
 if ! command -v fd >/dev/null 2>&1 && command -v fdfind >/dev/null 2>&1; then
   alias fd=fdfind
