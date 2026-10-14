@@ -141,9 +141,35 @@ the explicit profile also supports preparing an ARM VM. The Aurora step
 refuses a VM, Fedora, and non-Apple hardware. It does not repartition the disk.
 
 The 1Password CLI is installed by mise. Its desktop app uses the vendor ARM64
-tarball. Chromium is the Arch browser; Chrome and ChatGPT's Fedora RPM setup
-does not run on Arch. Those native apps need an Arch-supported package source
-before claiming parity with the Fedora install; their web apps are available.
+tarball. Chrome and ChatGPT desktop (including Codex) are installed by
+`scripts/linux/vendor-apps.sh`: it reads the vendors' HTTPS Debian package
+indexes, selects the native stable build, verifies the advertised SHA256 and
+repackages the official binaries as local pacman packages. Debian maintainer
+scripts are not run. This adds no AUR helper, third-party repository, or extra
+package manager. Icons and launchers are included; both use native Wayland on
+COSMIC with user overrides in `~/.config/chrome-flags.conf` and
+`~/.config/chatgpt-flags.conf` (one flag per line; no shell expansion).
+
+Update them separately from repository packages:
+
+```bash
+~/dotfiles/scripts/linux/vendor-apps.sh --check  # vendor versions only
+~/dotfiles/scripts/linux/vendor-apps.sh         # full Arch upgrade, newer vendor apps
+~/dotfiles/scripts/linux/vendor-apps.sh chrome  # update only Chrome
+```
+
+The updater builds as your user, then uses sudo for pacman. Cached archives,
+generated recipes and built packages live in
+`~/.cache/dotfiles/vendor-apps/`. The installed names are `google-chrome` and
+`openai-codex-desktop`; remove them with pacman normally. Upstream changes are
+discovered on each updater/installer run, not by a timer or the Debian/RPM app
+updater. `--force` rebuilds/reinstalls a current version. `--build-only` builds
+without installing (Arch build/runtime dependencies must already be present).
+`--download-only` verifies archives without installing and also runs on Fedora.
+
+Fresh-Arch application launch/login and COSMIC screen sharing remain acceptance
+items. The binaries are native; packaging does not by itself qualify the whole
+desktop integration.
 
 ## Restore COSMIC and mount source
 

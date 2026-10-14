@@ -35,11 +35,16 @@ kernel/boot stack with SEP writes disabled. `scripts/linux/aurora.sh` also runs
 independently. See the [Arch/Aurora runbook](docs/asahi-arch-aurora.md) for boot
 isolation, private COSMIC settings transfer, and deliberate Touch ID activation.
 
+On Arch ARM, Chrome and ChatGPT desktop are included. Re-run
+`scripts/linux/vendor-apps.sh` to update their native vendor binaries; `--check`
+checks versions without installing. The helper verifies vendor SHA256 hashes
+and builds local pacman packages, so no AUR helper or Debian/RPM tools are needed.
+
 ## What differs by OS
 
 | | macOS (`mac`) | Apple Silicon Linux (`asahi`) | Server (`server`) |
 |---|---|---|---|
-| System packages | `Brewfile` (formulae and casks) | dnf or pacman; flatpak (Zed, Obsidian, Vesktop, Caffeine Applet); ChatGPT RPM on Fedora | dnf, pacman, or apt |
+| System packages | `Brewfile` (formulae and casks) | dnf or pacman; flatpak (Zed, Obsidian, Vesktop, Caffeine Applet); native Chrome/ChatGPT (vendor RPMs on Fedora, locally repackaged vendor binaries on Arch) | dnf, pacman, or apt |
 | CLI tools and runtimes | mise | mise | mise |
 | Desktop and windows | yabai, skhd, borders, Raycast | COSMIC and its tiling | none |
 | Screenshots | built-in tools; `shot-share` for links | `shot-annotate` (cosmic-screenshot into Satty); `shot-share` | none |

@@ -56,11 +56,11 @@ install_system_packages() {
   configure_tailscale_tray
   install_desktop_flatpaks
   bash "$dotfiles_dir/scripts/linux/1password.sh"
+  bash "$dotfiles_dir/scripts/linux/vendor-apps.sh"
   if command -v syncthing >/dev/null 2>&1; then
     systemctl --user enable --now syncthing.service ||
       echo 'warning: enable syncthing.service after logging into COSMIC' >&2
   fi
-  echo 'Arch desktop: Chromium installed when available; ChatGPT/Chrome RPMs are Fedora-specific.'
 }
 
 install_satty() {
