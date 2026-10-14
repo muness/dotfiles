@@ -228,7 +228,7 @@ listing.
 |---|---|---|
 | 1Password | cask | arm64 tarball in `/opt/1Password`; re-run `scripts/linux/1password.sh` to update (it does not self-update) |
 | 1Password CLI | cask | RPM repo |
-| Browser | Chrome, Edge | Chromium (dnf). Chrome and Edge ship no arm64 Linux builds. Brave and Vivaldi have aarch64 flatpaks |
+| Browser | Chrome, Edge | Chrome (official arm64 RPM since July 2026, installed by `install_chrome`; updates via dnf) and Chromium. Edge has not been checked for arm64. Brave and Vivaldi have aarch64 flatpaks |
 | Discord | cask | Vesktop flatpak (official client is x86_64 only) |
 | HQPlayer Desktop | manual | Debian 13 arm64 build in a distrobox: `scripts/linux/hqplayer-distrobox.sh <deb>`. Desktop 6 lists Debian 13 arm64; check your 5.x downloads for a Debian 12 arm64 build first. Or ask Signalyst for a Fedora aarch64 Desktop build (Embedded has one) |
 | Tern | manual | no Linux build found |
