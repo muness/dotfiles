@@ -32,6 +32,7 @@ desktop_packages=(flatpak keepassxc syncthing chromium vlc 1password-cli openssh
 # only, so it is built from crates.io; these are its build dependencies.
 satty_build_deps=(gtk4-devel libadwaita-devel libepoxy-devel fontconfig-devel)
 flatpaks=(dev.zed.Zed md.obsidian.Obsidian dev.vencord.Vesktop)
+caffeine_applet_id=com.github.codevardhan.caffeine-applet
 
 add_repos() {
   dnf config-manager --help >/dev/null 2>&1 || sudo dnf install -y dnf5-plugins
@@ -89,11 +90,50 @@ install_system_packages() {
 
   flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
   flatpak install --user -y --noninteractive flathub "${flatpaks[@]}"
+  install_caffeine_applet
 
   bash "$dotfiles_dir/scripts/linux/1password.sh"
   install_chatgpt
   install_chrome
   systemctl --user enable --now syncthing.service || true
+}
+
+# Install the native COSMIC applet and add it to the panel's right wing.
+install_caffeine_applet() {
+  flatpak remote-add --user --if-not-exists cosmic https://apt.pop-os.org/cosmic/cosmic.flatpakrepo
+  flatpak install --user -y --noninteractive cosmic "$caffeine_applet_id"
+
+  local panel_config="$HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
+  local default_panel_config=/usr/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
+  mkdir -p "$(dirname "$panel_config")"
+  if [[ ! -f $panel_config ]]; then
+    if [[ ! -f $default_panel_config ]]; then
+      echo "warning: COSMIC panel defaults not found; add Caffeine in COSMIC Settings" >&2
+      return
+    fi
+    cp "$default_panel_config" "$panel_config"
+  fi
+
+  python3 - "$panel_config" "$caffeine_applet_id" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+path = Path(sys.argv[1])
+applet_id = sys.argv[2]
+config = path.read_text()
+if applet_id not in config:
+    config, count = re.subn(
+        r'("com\.system76\.CosmicAppletStatusArea")',
+        rf'\1, "{applet_id}"',
+        config,
+        count=1,
+    )
+    if count != 1:
+        raise SystemExit("Could not find COSMIC Status Area in panel config")
+    path.write_text(config)
+PY
+  echo "Caffeine added to the COSMIC panel; log out and back in to refresh the panel."
 }
 
 # swamp ships no aarch64 Linux release; build it once rustup exists.

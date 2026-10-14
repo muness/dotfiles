@@ -32,7 +32,7 @@ and the installer bootstraps mise for everything else.
 
 | | macOS (`mac`) | Fedora Asahi (`asahi`) | Server (`server`) |
 |---|---|---|---|
-| System packages | `Brewfile` (formulae and casks) | dnf, flatpak (Zed, Obsidian, Vesktop), ChatGPT RPM | dnf (apt on Debian) |
+| System packages | `Brewfile` (formulae and casks) | dnf, flatpak (Zed, Obsidian, Vesktop, Caffeine Applet), ChatGPT RPM | dnf (apt on Debian) |
 | CLI tools and runtimes | mise | mise | mise |
 | Desktop and windows | yabai, skhd, borders, Raycast | COSMIC and its tiling | none |
 | Screenshots | built-in tools; `shot-share` for links | `shot-annotate` (cosmic-screenshot into Satty); `shot-share` | none |
@@ -102,9 +102,10 @@ installs COSMIC, Chromium, KeePassXC, Syncthing, VLC, the 1Password app, the
 ChatGPT desktop app and the flatpaks. swamp and Satty are built from source
 because neither ships an aarch64 Linux release.
 
-The Fedora desktop setup also enables Tailscale's Linux systray in COSMIC's
-Status Area. After setup, run `sudo tailscale up` once to connect this machine
-to the Fleet tailnet.
+The Fedora desktop setup adds the Caffeine applet to the COSMIC panel and
+enables Tailscale's Linux systray in COSMIC's Status Area. Log out and back in
+after the first setup to refresh the panel. Then run `sudo tailscale up` once to
+connect this machine to the Fleet tailnet.
 
 ## macOS quick start
 
