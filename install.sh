@@ -5,6 +5,8 @@
 #   server  headless Linux, e.g. the homelab: CLI set and services, no desktop
 # Without --profile: Darwin is mac, an Asahi kernel is asahi, other Linux is server.
 set -euo pipefail
+# macOS ships bash 3.2, where an empty array is "unbound" under set -u, so the
+# ${args[@]+...} form below is deliberate.
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 
 profile=${DOTFILES_PROFILE:-}
@@ -28,8 +30,8 @@ fi
 echo "Profile: $profile"
 export DOTFILES_PROFILE=$profile
 case $profile in
-  mac) exec bash "$here/scripts/install-macos.sh" "${args[@]}" ;;
-  asahi) exec bash "$here/scripts/install-linux.sh" "${args[@]}" ;;
-  server) SKIP_DESKTOP=1 exec bash "$here/scripts/install-linux.sh" "${args[@]}" ;;
+  mac) exec bash "$here/scripts/install-macos.sh" ${args[@]+"${args[@]}"} ;;
+  asahi) exec bash "$here/scripts/install-linux.sh" ${args[@]+"${args[@]}"} ;;
+  server) SKIP_DESKTOP=1 exec bash "$here/scripts/install-linux.sh" ${args[@]+"${args[@]}"} ;;
   *) echo "Unknown profile '$profile' (use mac, asahi or server)" >&2; exit 2 ;;
 esac
