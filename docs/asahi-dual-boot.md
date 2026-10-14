@@ -205,6 +205,66 @@ have set odd ownership.
   runs fsck at boot (`0 2` in fstab); on macOS, use extFS's Verify if it
   refuses to mount.
 
+## Touch ID experiment: rolled back 2026-10-14
+
+**Revisit around November 4, 2026, only if relevant updates have landed.**
+Keep Touch ID disabled in the meantime.
+
+Machine: MacBook Pro 14-inch (2023), **M2 Max / J414C / T6021**, Fedora 44
+Asahi Remix; working stock kernel `7.1.13-402.asahi.fc44.aarch64+16k`.
+
+We built Aurora's experimental 16 KiB-page kernel
+`7.1.12-touchid-asahi-16k`, stage-two m1n1 and device trees, plus Fedora
+libfprint with the Apple SEP driver. Calibration was extracted privately.
+The diagnostic boot had `xart_writes=0` and `provision_keybag=0`; no
+fingerprint enrollment or SEP writes were enabled.
+
+**Outcome:** kernel panics with every kernel tried. Restoring
+`boot.bin.touchid-original` recovered Fedora. Exact panic cause was not
+determined. The fallback plan was inadequate: m1n1 and device trees live in
+the shared EFI `m1n1/boot.bin`, so selecting an older kernel did not isolate
+it from the experiment. A one-shot GRUB entry did not protect that shared
+boot path.
+
+Rollback was completed and checked: original boot bundle restored
+byte-for-byte, stock m1n1 configuration/DTB link/default kernel restored,
+experimental kernel/service/fprintd drop-in removed, and Fedora libfprint
+restored. Updates no longer select the experimental m1n1.
+
+### Updates to check before retrying
+
+- **Fedora/Asahi packages and support:** updated `m1n1` and `kernel-16k`,
+  official SEP/Touch ID status, and Fedora-compatible installation support.
+  A new release number or an Arch installer alone is insufficient.
+- **Exact-board reports:** J414C/T6021 success with named kernel, m1n1,
+  DTB and firmware versions; fixes or explanations for boot panics; cold
+  boot, stock-kernel fallback, suspend/resume and macOS dual boot tested.
+  Enrollment, matching and persistence after reboot should be demonstrated.
+- **Aurora changes:** check the
+  [M2 MacBook Pro thread](https://github.com/aurora-silicon/linux/discussions/106),
+  [SEP reboot/persistence work](https://github.com/aurora-silicon/linux/pull/69),
+  [m1n1 history](https://github.com/aurora-silicon/m1n1/commits/aurora-wip/),
+  and [Fedora libfprint packaging](https://github.com/aurora-silicon/aurora-sep-userspace).
+  Failed source pins were kernel `d588f760941edaa2cbf4a0a9ec12a47027581535`
+  and m1n1 `f3ac615eb1376d3bbba24cd84c414b9e41892adb`.
+  Check integration of the patched bindgen/layout fixes and the missing
+  `dwc3_event_buffers_cleanup` export needed for our modular USB build.
+- **SEP write safety:** reread the current
+  [xART safety notes](https://github.com/aurora-silicon/linux/blob/aurora-wip/tools/aurora-sep/XART-SAFETY.md).
+  Our read-only APFS inspection passed, but that does not prove writes are
+  safe. Back up macOS/FileVault data; restoring a raw iBoot image cannot
+  necessarily reverse SEP anti-replay state.
+
+On a retry, verify recovery of the **whole original EFI boot bundle**, record
+firmware versions and capture the first panic for diagnosis. Start read-only
+again; consider provisioning only after boot and enclave diagnostics work.
+Keep password login until fingerprint matching survives a cold reboot.
+
+Local evidence, backups and build provenance:
+`~/.local/state/touchid-research/`; build logs: `~/.cache/touchid-build/`.
+Do not rerun the historical installer unchanged. Keep calibration, iBoot
+images and SEP state out of this repo.
+
 ## Screenshots on Fedora
 
 Bind `shot-annotate` in **Settings → Keyboard → Custom shortcuts**: capture a
