@@ -9,13 +9,17 @@ for tool in cosmic-screenshot satty wl-copy; do
   command -v "$tool" >/dev/null 2>&1 || { echo "shot-annotate: $tool not found" >&2; exit 2; }
 done
 
+# Capture into a private temp dir: only Satty's output lands in $SHOT_DIR, so
+# an Escape never leaves an unannotated file for shot-share to pick up.
+tmp=$(mktemp -d)
+trap 'rm -rf "$tmp"' EXIT
+
 # The portal may print the saved file as a path or a file:// URI; if it prints
-# nothing, fall back to the newest PNG under ~/Pictures from the last minute.
-captured=$(cosmic-screenshot --interactive=true --notify=false --save-dir "$dir" | tail -n1 || true)
+# nothing, the temp dir can only hold this capture.
+captured=$(cosmic-screenshot --interactive=true --notify=false --save-dir "$tmp" | tail -n1 || true)
 captured=${captured#file://}
 if [[ ! -f $captured ]]; then
-  captured=$(find "$HOME/Pictures" -maxdepth 3 -name '*.png' -mmin -1 -print0 2>/dev/null |
-    xargs -0 -r ls -t 2>/dev/null | head -n1 || true)
+  captured=$(find "$tmp" -maxdepth 1 -name '*.png' -print -quit)
 fi
 [[ -f $captured ]] || { echo "shot-annotate: capture cancelled or file not found" >&2; exit 1; }
 

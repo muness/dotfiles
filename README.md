@@ -52,7 +52,7 @@ rustup, Claude Code and a few uv tools.
 **Fedora / Fedora Asahi Remix:** adds the mise, Tailscale and 1Password repos,
 installs the CLI set with dnf, then COSMIC, Chromium, KeePassXC, Syncthing, the
 1Password app and flatpaks (Zed, Obsidian, Vesktop). Set `SKIP_DESKTOP=1` on a
-headless host. Builds swamp and Satty (screenshot annotator) from source.
+headless host. Installs OpenAI's ChatGPT desktop app from its RPM and builds swamp and Satty (screenshot annotator) from source.
 
 **Debian / Ubuntu:** installs zsh, stow and git with apt, then bootstraps mise for the rest.
 

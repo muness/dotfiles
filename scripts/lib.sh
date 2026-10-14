@@ -70,8 +70,15 @@ prepare_gitconfig_local() {
 install_mise_tools() {
   command -v mise >/dev/null 2>&1 || { echo 'mise is required' >&2; exit 2; }
   echo "Installing mise tools..."
+  # Optional tools may lack a build for this platform; warn and carry on.
   mise install --yes || echo "warning: some mise tools failed to install" >&2
   eval "$(mise env -s bash)"
+  # setup-cargo.sh needs sccache; stop here with the real cause, not later.
+  local tool
+  for tool in sccache; do
+    command -v "$tool" >/dev/null 2>&1 ||
+      { echo "mise did not install required tool '$tool'; see the mise output above" >&2; exit 1; }
+  done
 }
 
 # Per-user toolchains that install the same way on macOS and Linux.

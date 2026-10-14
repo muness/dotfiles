@@ -232,7 +232,8 @@ listing.
 | Discord | cask | Vesktop flatpak (official client is x86_64 only) |
 | HQPlayer Desktop | manual | Debian 13 arm64 build in a distrobox: `scripts/linux/hqplayer-distrobox.sh <deb>`. Desktop 6 lists Debian 13 arm64; check your 5.x downloads for a Debian 12 arm64 build first. Or ask Signalyst for a Fedora aarch64 Desktop build (Embedded has one) |
 | Tern | manual | no Linux build found |
-| Claude, ChatGPT, Codex desktop apps | casks | none; use the web apps (Claude Code CLI is installed) |
+| ChatGPT (includes Codex) | cask | OpenAI's official Linux app (public preview, Aug 2026): RPM installed by `install_chatgpt`, updates via dnf. Wayland support is experimental; if windows misbehave, quit it and run `chatgpt --ozone-platform=wayland` |
+| Claude desktop | cask | none; use the web app (Claude Code CLI is installed) |
 | Beeper | cask | not on Flathub; check Beeper's own AppImage |
 | Fork | cask | none; `gitg` or `meld` are in dnf, or use `gh` and the CLI |
 | tectonic | brew | not in mise or dnf; typst (mise) covers most of it |
