@@ -5,5 +5,9 @@ if [[ $OSTYPE == darwin* ]]; then
 fi
 
 [[ -d "$HOME/.dotnet/tools" ]] && path+=("$HOME/.dotnet/tools")
+
+# Login shells: re-assert mise first, because macOS path_helper reorders PATH
+# after .zshenv has run.
+[[ -d "$HOME/.local/share/mise/shims" ]] && path=("$HOME/.local/share/mise/shims" $path)
 typeset -U path PATH
 export PATH

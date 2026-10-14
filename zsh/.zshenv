@@ -25,3 +25,12 @@ if [[ $OSTYPE == darwin* ]]; then
   fi
 fi
 
+# mise's shims go first so python, node and the rest resolve to the versions in
+# ~/.config/mise/config.toml in every context that reads .zshenv (scripts, IDEs,
+# non-interactive shells), not only where `mise activate` runs. This comes
+# after the Homebrew block above, which prepends /opt/homebrew/bin. System
+# python (Homebrew's, or /usr/bin/python3 for dnf on Fedora) stays installed
+# but is never the one you get by typing `python`.
+[[ -d "$HOME/.local/share/mise/shims" ]] && path=("$HOME/.local/share/mise/shims" $path)
+typeset -U path PATH
+export PATH
