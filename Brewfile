@@ -51,6 +51,7 @@ brew "asmvik/formulae/yabai"
 brew "asmvik/formulae/skhd"
 brew "FelixKratz/formulae/borders"
 cask "espanso"
+# cask "rectangle"   # conflicts with yabai
 
 # Security and identity
 cask "1password"
@@ -98,7 +99,6 @@ cask "android-commandlinetools"
 # cask "jetbrains-toolbox"
 # cask "lulu"
 # cask "onedrive"
-# cask "rectangle"   # conflicts with yabai
 # cask "spotify"
 # cask "viscosity"
 # cask "visual-studio-code"
