@@ -70,8 +70,11 @@ install_system_packages() {
   # A Minimal install has no display manager; KDE/GNOME installs keep theirs.
   if ! systemctl is-enabled display-manager.service >/dev/null 2>&1; then
     sudo systemctl enable cosmic-greeter.service
-    sudo systemctl set-default graphical.target
   fi
+  # Always boot to the graphical target on a desktop profile. This must not sit
+  # inside the check above: installing COSMIC can enable the greeter itself, so
+  # the check passes and a Minimal image would keep booting to a text console.
+  sudo systemctl set-default graphical.target
 
   flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
   flatpak install --user -y --noninteractive flathub "${flatpaks[@]}"
