@@ -1,84 +1,110 @@
 # Dotfiles
 
-Cross-platform shell and editor configuration plus the
-macOS window-management setup. [GNU Stow](https://www.gnu.org/software/stow/)
-symlinks selected packages into the home directory.
+Shell, editor, toolchain and desktop configuration for three kinds of machine:
+a Mac, a Fedora Asahi laptop (the same Apple Silicon hardware, dual booted),
+and headless Linux servers such as the homelab. One repo, one command, a
+profile per machine. [GNU Stow](https://www.gnu.org/software/stow/) symlinks
+config into the home directory, and [mise](https://mise.jdx.dev/) installs the
+CLI tools and language runtimes everywhere.
 
-## What's Included
-
-| Tool | Platform | What it does |
-|------|----------|--------------|
-| zsh | Linux/macOS | Portable shell startup, history, completion, mise, and optional enhancements |
-| vim | Linux/macOS | Small editor baseline |
-| git | Linux/macOS | Identity, 1Password SSH signing, gh credentials; per-machine bits in `~/.gitconfig.local` |
-| mise | Linux/macOS | Global language toolchains (`~/.config/mise/config.toml`) |
-| Cargo + sccache | Linux/macOS | Smaller dev/test debug output, a shared compiler cache, and build intermediates in `~/.cargo/build` instead of the source tree |
-| COSMIC + Fedora apps | Fedora Asahi | Desktop, Chromium, 1Password, flatpaks (see `scripts/linux/fedora.sh`) |
-| shots | Linux/macOS | `shot-share` uploads an image to the homelab and copies a link; `shot-annotate` (Linux) is cosmic-screenshot into Satty |
-| Shared `/Volumes/src` | dual boot | ext4 partition both OSes mount; see [docs/asahi-dual-boot.md](docs/asahi-dual-boot.md) |
-| [yabai](https://github.com/koekeishiya/yabai) | macOS | Tiling window manager |
-| [skhd](https://github.com/koekeishiya/skhd) | macOS | Global keyboard shortcuts |
-| [borders](https://github.com/FelixKratz/JankyBorders) | macOS | Focused-window borders |
-| Tern | macOS | Terminal settings (`settings.json` only; daemon state is not linked) |
-| [Raycast](https://raycast.com/) | macOS | Centered-master script commands |
-| [espanso](https://espanso.org/) | macOS | Text expansion configuration |
-
-## Layout of the installers
-
-`./install.sh` picks a **profile** and runs the matching script. Override with
-`--profile mac|asahi|server` (or `DOTFILES_PROFILE`).
-
-| Profile | Picked when | Runs | Adds |
-|---------|-------------|------|------|
-| `mac` | Darwin | `scripts/install-macos.sh` | `Brewfile` (casks, system packages), yabai/skhd/borders/raycast, espanso link, services |
-| `asahi` | Linux kernel name contains `asahi` | `scripts/install-linux.sh` | `scripts/linux/fedora.sh`: dnf, COSMIC, flatpaks, 1Password |
-| `server` | any other Linux | `scripts/install-linux.sh` with `SKIP_DESKTOP=1` | the same, minus the desktop: the homelab profile |
-
-**One list for the CLI set.** `mise/.config/mise/config.toml` lists the
-portable tools (starship, atuin, fzf, fd, bat, ripgrep, zoxide, direnv,
-sccache, uv, gh, jq, shellcheck, shfmt, gitleaks) plus language runtimes. Every
-profile installs them with `mise install`, so adding a tool is a one-line
-edit there. The Brewfile and the dnf/apt arrays hold only what mise can't:
-shells and zsh plugins, stow, GUI apps, kernel-level and system packages.
-Debian/Ubuntu hosts bootstrap mise itself via `mise.run`.
-
-The installers share `scripts/lib.sh`, which stows `zsh vim git mise shots` with
-`--no-folding` (only files are linked, so apps can't write state into the
-repo), installs the mise tools, then runs `scripts/setup-cargo.sh` and installs
-rustup, Claude Code and a few uv tools.
-
-## Linux quick start
-
-**Fedora / Fedora Asahi Remix:** adds the mise, Tailscale and 1Password repos,
-installs the CLI set with dnf, then COSMIC, Chromium, KeePassXC, Syncthing, the
-1Password app and flatpaks (Zed, Obsidian, Vesktop). Set `SKIP_DESKTOP=1` on a
-headless host. Installs OpenAI's ChatGPT desktop app from its RPM and builds swamp and Satty (screenshot annotator) from source.
-
-**Debian / Ubuntu:** installs zsh, stow and git with apt, then bootstraps mise for the rest.
-
-Both back up conflicting files under `~/.local/state/dotfiles-backup`, stow
-the shared packages and Cargo config, validate zsh, and change the login
-shell to zsh.
+## Quick start
 
 ```bash
 git clone https://github.com/muness/dotfiles.git ~/dotfiles
-~/dotfiles/install.sh
+~/dotfiles/install.sh        # picks the profile for this machine
 ```
 
-Secrets, `~/.ssh/config` and host services are not managed here.
+| Machine | Profile | Picked when | After the install |
+|---------|---------|-------------|-------------------|
+| Mac | `mac` | Darwin | [Grant yabai/skhd accessibility](#macos-quick-start), then restart the terminal |
+| Fedora Asahi laptop | `asahi` | Linux kernel name contains `asahi` | Reboot into COSMIC, set up 1Password. Full runbook: [docs/asahi-dual-boot.md](docs/asahi-dual-boot.md) |
+| Linux server / homelab | `server` | any other Linux | Nothing; no desktop is installed. Start a new login shell |
 
-For the macOS + Fedora Asahi dual boot with a shared source partition, follow
-[docs/asahi-dual-boot.md](docs/asahi-dual-boot.md).
+Force a profile with `./install.sh --profile mac|asahi|server` (or
+`DOTFILES_PROFILE=server`). The installer is safe to re-run: existing files are
+moved to `~/.local/state/dotfiles-backup/<timestamp>` before linking, and
+tools that are already installed are skipped.
+
+Debian and Ubuntu also work as `server` hosts: apt provides zsh, stow and git,
+and the installer bootstraps mise for everything else.
+
+## What differs by OS
+
+| | macOS (`mac`) | Fedora Asahi (`asahi`) | Server (`server`) |
+|---|---|---|---|
+| System packages | `Brewfile` (formulae and casks) | dnf, flatpak (Zed, Obsidian, Vesktop), ChatGPT RPM | dnf (apt on Debian) |
+| CLI tools and runtimes | mise | mise | mise |
+| Desktop and windows | yabai, skhd, borders, Raycast | COSMIC and its tiling | none |
+| Screenshots | built-in tools; `shot-share` for links | `shot-annotate` (cosmic-screenshot into Satty); `shot-share` | none |
+| Background services | launchd, not managed here | systemd user units (caddy, cloudflared) and swamp's own | same, plus lingering so they run without a login |
+| 1Password SSH agent | app socket | `~/.1password/agent.sock` | no app; commit signing is switched off |
+| Source tree | `~/src`, shared `/Volumes/src` when dual booting | same shared partition | wherever you clone |
+
+Everything else is identical on all three: zsh startup, git config, vim,
+Cargo and sccache settings, and the mise toolchain list.
+
+## Day to day
+
+**Add a CLI tool or language runtime.** Add one line to
+`mise/.config/mise/config.toml` (for example `hyperfine = "latest"`), then run
+`mise install`. Every machine gets it the next time it pulls and installs.
+The Brewfile and the dnf and apt lists hold only what mise can't: shells and
+zsh plugins, stow, GUI apps, and system or kernel-level packages.
+
+**Python is always mise's.** `python = "3.14"` is pinned in that file, and
+mise's shims directory comes first on `PATH` in `.zshenv` and `.zprofile`. So
+scripts, IDEs and non-interactive shells get it too, never Homebrew's or the
+distro's `/usr/bin/python3`. The system one stays installed because dnf needs
+it; you just never reach it by typing `python`. `uv` creates venvs from it.
+
+**Change config.** Edit files in `~/dotfiles`; the home directory holds
+symlinks into it. A new file inside an existing package needs `stow -R <package>`
+(see [Updating](#updating)).
+
+**Share a screenshot.** `shot-share [file]` uploads an image to the homelab
+under a random name and copies the link (works on macOS and Linux). On Linux,
+`shot-annotate` captures a region with cosmic-screenshot and opens Satty; bind
+it to a key in COSMIC settings. Configure the upload once per machine in
+`~/.config/shots/env`, which is not in this repo:
+
+```
+SHOT_UPLOAD_TARGET=homelab:/srv/shots
+SHOT_BASE_URL=https://shots.example
+```
+
+**Run services on Linux.** The installer enables `caddy.service` and
+`cloudflared.service` as systemd user units. Each stays idle until its config
+exists: `~/.config/caddy/Caddyfile` and `~/.cloudflared/config.yml`. Check them
+with `systemctl --user status caddy`. Other Mac launch agents belong to their own
+repos; [docs/asahi-dual-boot.md](docs/asahi-dual-boot.md#launch-agents-on-linux) lists them.
+
+**Not managed here:** secrets, `~/.ssh/config`, and per-machine git settings
+(those go in `~/.gitconfig.local`).
+
+## How the installers fit together
+
+`./install.sh` runs `scripts/install-macos.sh` for `mac`, or
+`scripts/install-linux.sh` for `asahi` and `server` (`server` sets
+`SKIP_DESKTOP=1`). Both source `scripts/lib.sh` and follow the same order:
+
+1. System packages: `Brewfile`, or `scripts/linux/fedora.sh` / `debian.sh`.
+2. Back up conflicting files, then stow `zsh vim git mise shots` (plus the
+   macOS window-management packages, or `systemd` on Linux) with `--no-folding`,
+   so only files are linked and apps can't write state into the repo.
+3. `mise install` for the CLI set and runtimes, put on `PATH` for the rest of
+   the run.
+4. `scripts/setup-cargo.sh`, rustup, Claude Code and a few uv tools.
+5. Schedule `swamp observe` every 15 minutes, and on Linux enable the systemd
+   user units.
+
+On Fedora the system step also adds the mise, Tailscale and 1Password repos and
+installs COSMIC, Chromium, KeePassXC, Syncthing, VLC, the 1Password app, the
+ChatGPT desktop app and the flatpaks. swamp and Satty are built from source
+because neither ships an aarch64 Linux release.
 
 ## macOS quick start
 
-```bash
-git clone https://github.com/muness/dotfiles.git ~/dotfiles
-cd ~/dotfiles
-./install.sh
-```
-
-Grant accessibility to **yabai** and **skhd**: **System Settings → Privacy & Security → Accessibility**
+Run `./install.sh` as above. It also links Tern's `settings.json` and the espanso config. Then grant accessibility to **yabai** and **skhd**: **System Settings → Privacy & Security → Accessibility**
 
 Start yabai and skhd with their built-in launchd helpers (these formulas do not use `brew services`). Borders can still use Homebrew services:
 
@@ -88,7 +114,16 @@ skhd --start-service
 brew services start borders
 ```
 
-### Rust builds
+### Prerequisites
+
+- macOS 13+ (Ventura or later)
+- [Homebrew](https://brew.sh/)
+
+### Yabai Requires Partial SIP Disable
+
+For yabai to control windows across all spaces, you need to [partially disable System Integrity Protection](https://github.com/koekeishiya/yabai/wiki/Disabling-System-Integrity-Protection). This is safe but requires a reboot.
+
+## Rust builds (both OSes)
 
 `cargo/.cargo/config.toml` sets `build.build-dir` to
 `{cargo-cache-home}/build/{workspace-path-hash}`: intermediates go to
@@ -104,15 +139,6 @@ The setup backs up an existing config, including Cargo's legacy `~/.cargo/config
 ```bash
 bash scripts/setup-cargo.sh
 ```
-
-### Prerequisites
-
-- macOS 13+ (Ventura or later)
-- [Homebrew](https://brew.sh/)
-
-### Yabai Requires Partial SIP Disable
-
-For yabai to control windows across all spaces, you need to [partially disable System Integrity Protection](https://github.com/koekeishiya/yabai/wiki/Disabling-System-Integrity-Protection). This is safe but requires a reboot.
 
 ## Keybindings
 
@@ -207,6 +233,7 @@ dotfiles/
 ├── git/        → ~/.gitconfig, ~/.config/git/ignore
 ├── mise/       → ~/.config/mise/config.toml   (the portable CLI list)
 ├── shots/      → ~/.local/bin/shot-{annotate,share}
+├── systemd/    → ~/.config/systemd/user/      (Linux only)
 ├── yabai/      → ~/.config/yabai/
 ├── skhd/       → ~/.config/skhd/
 ├── borders/    → ~/.config/borders/
@@ -218,7 +245,7 @@ dotfiles/
 └── Brewfile              (macOS only)
 ```
 
-## Manual Installation
+## Manual installation (macOS)
 
 If you prefer to install selectively:
 
@@ -242,12 +269,20 @@ brew services start borders
 ```bash
 cd ~/dotfiles
 git pull
-stow <package>  # re-stow if configs changed
+./install.sh          # re-runs everything; already-installed tools are skipped
+# or, for config-only changes:
+stow --no-folding --restow <package>
 ```
 
 ## Uninstalling
 
 ```bash
 cd ~/dotfiles
-stow -D yabai skhd borders tern zsh vim git mise raycast
+# macOS
+stow -D yabai skhd borders tern zsh vim git mise shots raycast cargo
+# Linux
+stow -D zsh vim git mise shots cargo systemd
 ```
+
+Backups of anything the installer moved aside stay in
+`~/.local/state/dotfiles-backup`.
