@@ -1,0 +1,18 @@
+[Unit]
+Description=Caddy (user)
+Documentation=https://caddyserver.com/docs/
+After=network-online.target
+Wants=network-online.target
+# Does nothing until you create the config; the dnf package's own system
+# service (caddy.service under /etc/caddy) is separate and left disabled.
+ConditionPathExists=%h/.config/caddy/Caddyfile
+
+[Service]
+ExecStart=/usr/bin/caddy run --config %h/.config/caddy/Caddyfile
+ExecReload=/usr/bin/caddy reload --config %h/.config/caddy/Caddyfile
+Environment=XDG_DATA_HOME=%h/.local/share
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

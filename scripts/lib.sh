@@ -113,3 +113,18 @@ schedule_swamp() {
     swamp schedule --every 15m
   fi
 }
+
+# Enable the stowed systemd user units. Each unit has a ConditionPathExists on
+# its config, so enabling is harmless until that config is created. On a
+# headless host, lingering keeps them running without a login session.
+enable_user_services() {
+  command -v systemctl >/dev/null 2>&1 || return 0
+  systemctl --user daemon-reload || { echo "warning: no systemd user session; skipping services" >&2; return 0; }
+  local unit
+  for unit in "$@"; do
+    systemctl --user enable --now "$unit" || echo "warning: could not enable $unit" >&2
+  done
+  if [[ ${SKIP_DESKTOP:-} == 1 ]]; then
+    sudo loginctl enable-linger "$USER" || true
+  fi
+}

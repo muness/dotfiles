@@ -1,0 +1,15 @@
+[Unit]
+Description=cloudflared tunnel (user)
+After=network-online.target
+Wants=network-online.target
+# Credentials and ingress rules live in ~/.cloudflared, outside this repo.
+ConditionPathExists=%h/.cloudflared/config.yml
+
+[Service]
+# cloudflared comes from mise; systemd user units don't get mise's PATH.
+ExecStart=%h/.local/share/mise/shims/cloudflared tunnel run
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=default.target

@@ -247,5 +247,17 @@ listing.
 | Roon, Qobuz | apps | none |
 | yabai/skhd/centered master | brew | COSMIC tiling |
 
-Launch agents to port to systemd user units later: caddy, cloudflared,
-`swamp observe`, `slop-livin observe`, call-memory, ether-*, pit-history.
+## Launch agents on Linux
+
+The dotfiles own only the generic services; the installer stows `systemd/` and
+enables these user units. Each has a `ConditionPathExists` on its config, so it
+stays idle until you create that file. Headless (`server`) hosts also get
+`loginctl enable-linger`, so the units run without a login session.
+
+| Mac launch agent | On Linux |
+|---|---|
+| `homebrew.mxcl.caddy` | `caddy.service`, reads `~/.config/caddy/Caddyfile` (yours is `:8443 { reverse_proxy 127.0.0.1:8082 }`; copy it over by hand) |
+| `homebrew.mxcl.cloudflared` | `cloudflared.service`, runs `cloudflared tunnel run` with `~/.cloudflared/config.yml`. On the Mac it runs with no arguments and exits 1, so it was not working there either |
+| `swamp.observe` | already handled: `swamp schedule --collector` installs swamp's own user units |
+| `com.call-memory.*`, `ether-*`, `pit-history`, `agent-surface`, `tdongle-diagnostic-receiver`, `apk-server`, `cliproxyapi`, `slop-livin.observe` | not ported here. They hardcode `/Users/...` or Codex worktree paths and belong to their own repos; the call-memory ones are tied to the HiDock USB device and `mac_transcribe.py`. Port each in its repo when you move it, ideally to the homelab |
+
