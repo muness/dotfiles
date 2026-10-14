@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR
-# Linux installer: Fedora (including Fedora Asahi Remix) or Debian/Ubuntu.
+# Linux installer: Fedora, Arch Linux ARM (including Aurora), or Debian/Ubuntu.
 set -euo pipefail
 # shellcheck source=lib.sh
 source "$(dirname -- "${BASH_SOURCE[0]}")/lib.sh"
@@ -10,7 +10,24 @@ if [[ $(uname -s) != Linux ]]; then
   exit 2
 fi
 
-keep_sudo_alive
+aurora_mode=
+while (($#)); do
+  case $1 in
+    --aurora) aurora_mode=read-only ;;
+    --aurora-enable-touchid) aurora_mode=enabled ;;
+    --help|-h)
+      echo 'Usage: install.sh [--profile asahi|server] [--aurora|--aurora-enable-touchid]'
+      echo 'Aurora options apply to Arch ARM on Apple Silicon and change its kernel/boot bundle.'
+      exit 0 ;;
+    *) echo "Unknown Linux installer option: $1" >&2; exit 2 ;;
+  esac
+  shift
+done
+
+if ((EUID == 0)); then
+  echo 'Run from your own user account with sudo configured, not as root.' >&2
+  exit 2
+fi
 
 # shellcheck disable=SC1091
 . /etc/os-release
@@ -21,13 +38,30 @@ case " ${ID:-} ${ID_LIKE:-} " in
   *" debian "*|*" ubuntu "*)
     # shellcheck source=linux/debian.sh
     source "$dotfiles_dir/scripts/linux/debian.sh" ;;
+  *" arch "*|*" archarm "*|*" alarm "*)
+    # shellcheck source=linux/arch.sh
+    source "$dotfiles_dir/scripts/linux/arch.sh" ;;
   *)
     echo "Unsupported distribution: ${PRETTY_NAME:-unknown}" >&2
     exit 2 ;;
 esac
 
+if [[ -n $aurora_mode ]]; then
+  [[ ${ID:-} == arch || ${ID:-} == archarm || ${ID:-} == alarm || " ${ID_LIKE:-} " == *" arch "* ]] ||
+    { echo 'Aurora installation requires Arch Linux ARM.' >&2; exit 2; }
+  bash "$dotfiles_dir/scripts/linux/aurora.sh" --check
+fi
+keep_sudo_alive
+
 # Each distro script defines install_system_packages.
 install_system_packages
+if [[ -n $aurora_mode ]]; then
+  if [[ $aurora_mode == enabled ]]; then
+    bash "$dotfiles_dir/scripts/linux/aurora.sh" --enable-touchid
+  else
+    bash "$dotfiles_dir/scripts/linux/aurora.sh" --read-only
+  fi
+fi
 
 prepare_gitconfig_local /opt/1Password/op-ssh-sign
 backup_conflicts "${shared_conflicts[@]}" .config/tern/settings.json

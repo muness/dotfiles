@@ -4,6 +4,8 @@
 # Set SKIP_DESKTOP=1 for a headless host (no COSMIC, flatpaks, or GUI apps).
 # shellcheck source=common.sh
 source "$dotfiles_dir/scripts/linux/common.sh"
+# shellcheck source=workstation.sh
+source "$dotfiles_dir/scripts/linux/workstation.sh"
 
 # The portable CLI set (fzf, fd, bat, rg, zoxide, direnv, atuin, starship, gh,
 # jq, uv, sccache, shellcheck, shfmt, gitleaks, terraform, typst, d2, marksman,
@@ -25,14 +27,12 @@ dnf_packages=(
   podman distrobox
 )
 
-desktop_packages=(flatpak keepassxc syncthing chromium vlc 1password-cli openssh-askpass
+desktop_packages=(flatpak keepassxc syncthing chromium vlc openssh-askpass
   # Screenshots: cosmic-screenshot captures, Satty annotates (see install_satty).
   cosmic-screenshot wl-clipboard google-noto-color-emoji-fonts)
 # Satty has no Fedora RPM or Flathub build and its release binary is x86-64
 # only, so it is built from crates.io; these are its build dependencies.
 satty_build_deps=(gtk4-devel libadwaita-devel libepoxy-devel fontconfig-devel)
-flatpaks=(dev.zed.Zed md.obsidian.Obsidian dev.vencord.Vesktop)
-caffeine_applet_id=com.github.codevardhan.caffeine-applet
 
 add_repos() {
   dnf config-manager --help >/dev/null 2>&1 || sudo dnf install -y dnf5-plugins
@@ -63,15 +63,7 @@ install_system_packages() {
 
   [[ ${SKIP_DESKTOP:-} == 1 ]] && return
 
-  # Tailscale installs a separate StatusNotifier tray app. COSMIC's Status Area
-  # hosts it, but enabling tailscaled alone does not launch the tray at login.
-  if tailscale configure systray --enable-startup=systemd; then
-    systemctl --user daemon-reload
-    systemctl --user enable --now tailscale-systray.service ||
-      echo "warning: could not enable tailscale-systray.service" >&2
-  else
-    echo "warning: could not configure the Tailscale tray startup" >&2
-  fi
+  configure_tailscale_tray
 
   sudo dnf install -y --skip-unavailable "${desktop_packages[@]}"
 
@@ -88,58 +80,12 @@ install_system_packages() {
   # the check passes and a Minimal image would keep booting to a text console.
   sudo systemctl set-default graphical.target
 
-  flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
-  flatpak install --user -y --noninteractive flathub "${flatpaks[@]}"
-  install_caffeine_applet
+  install_desktop_flatpaks
 
   bash "$dotfiles_dir/scripts/linux/1password.sh"
   install_chatgpt
   install_chrome
   systemctl --user enable --now syncthing.service || true
-}
-
-# Install the native COSMIC applet and add it to the panel's right wing.
-install_caffeine_applet() {
-  flatpak remote-add --user --if-not-exists cosmic https://apt.pop-os.org/cosmic/cosmic.flatpakrepo
-  flatpak install --user -y --noninteractive cosmic "$caffeine_applet_id"
-
-  local panel_config="$HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
-  local default_panel_config=/usr/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
-  mkdir -p "$(dirname "$panel_config")"
-  if [[ ! -f $panel_config ]]; then
-    if [[ ! -f $default_panel_config ]]; then
-      echo "warning: COSMIC panel defaults not found; add Caffeine in COSMIC Settings" >&2
-      return
-    fi
-    cp "$default_panel_config" "$panel_config"
-  fi
-
-  python3 - "$panel_config" "$caffeine_applet_id" <<'PY'
-from pathlib import Path
-import re
-import sys
-
-path = Path(sys.argv[1])
-applet_id = sys.argv[2]
-config = path.read_text()
-if applet_id not in config:
-    config, count = re.subn(
-        r'("com\.system76\.CosmicAppletStatusArea")',
-        rf'\1, "{applet_id}"',
-        config,
-        count=1,
-    )
-    if count != 1:
-        raise SystemExit("Could not find COSMIC Status Area in panel config")
-    path.write_text(config)
-PY
-  echo "Caffeine added to the COSMIC panel; log out and back in to refresh the panel."
-}
-
-# swamp ships no aarch64 Linux release; build it once rustup exists.
-install_swamp() {
-  command -v swamp >/dev/null 2>&1 && return
-  cargo install --locked --git https://github.com/open-horizon-labs/swamp swamp
 }
 
 # Wayland screenshot annotator; pairs with cosmic-screenshot. Desktop only.

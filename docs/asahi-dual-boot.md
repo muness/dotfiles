@@ -4,6 +4,9 @@ Runbook for a 1 TB / 32 GB M2 Max MacBook Pro. macOS and Fedora Asahi Remix
 each keep their own system and home; source code lives once on an ext4
 partition that both mount at `/Volumes/src`, with `~/src` pointing at it.
 
+For a fresh Arch ARM/Aurora installation with COSMIC, including keeping this
+Fedora install as a third-boot fallback, see [the Arch/Aurora runbook](asahi-arch-aurora.md).
+
 ## Disk plan
 
 | Partition | Size | Notes |
@@ -28,6 +31,8 @@ it, so:
 - Fedora's root can't grow without shrinking `src` from the front, which ext4
   can't do. In practice you delete `src` and recreate it smaller.
 - `src` has nothing after it but Apple's recovery partition, so it can't grow.
+  It **can shrink from its end while unmounted** to leave a gap for another
+  Linux installation. That preserves its start and the existing Fedora layout.
 - macOS can't reclaim space either, because the Asahi stub sits after it.
 - None of this can be done from macOS: `diskutil` can't resize Fedora's btrfs
   root or the ext4 partition. It has to happen from Fedora.
@@ -287,7 +292,7 @@ listing.
 | Need | macOS | Fedora Asahi |
 |---|---|---|
 | 1Password | cask | arm64 tarball in `/opt/1Password`; re-run `scripts/linux/1password.sh` to update (it does not self-update) |
-| 1Password CLI | cask | RPM repo |
+| 1Password CLI | cask | mise (same vendor CLI on Arch ARM) |
 | Browser | Chrome, Edge | Chrome (official arm64 RPM since July 2026, installed by `install_chrome`; updates via dnf) and Chromium. Edge has not been checked for arm64. Brave and Vivaldi have aarch64 flatpaks |
 | Discord | cask | Vesktop flatpak (official client is x86_64 only) |
 | HQPlayer Desktop | manual | Debian 13 arm64 build in a distrobox: `scripts/linux/hqplayer-distrobox.sh <deb>`. Desktop 6 lists Debian 13 arm64; check your 5.x downloads for a Debian 12 arm64 build first. Or ask Signalyst for a Fedora aarch64 Desktop build (Embedded has one) |

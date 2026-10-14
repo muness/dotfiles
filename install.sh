@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Entry point: pick a profile and run the installer for it.
 #   mac     macOS: Brewfile, tiling stack, launch agents
-#   asahi   Fedora Asahi (or any Linux desktop): COSMIC, flatpaks, 1Password
+#   asahi   Apple Silicon on Fedora or Arch ARM/Aurora: COSMIC, flatpaks, 1Password
 #   server  headless Linux, e.g. the homelab: CLI set and services, no desktop
-# Without --profile: Darwin is mac, an Asahi kernel is asahi, other Linux is server.
+# Without --profile: Darwin is mac, Apple Silicon/Asahi/Aurora is asahi, other Linux is server.
 set -euo pipefail
 # macOS ships bash 3.2, where an empty array is "unbound" under set -u, so the
 # ${args[@]+...} form below is deliberate.
@@ -22,7 +22,12 @@ done
 if [[ -z $profile ]]; then
   case $(uname -s) in
     Darwin) profile=mac ;;
-    Linux) case $(uname -r) in *asahi*) profile=asahi ;; *) profile=server ;; esac ;;
+    Linux)
+      if [[ -r /proc/device-tree/compatible ]] && grep -aq 'apple,arm-platform' /proc/device-tree/compatible; then
+        profile=asahi
+      else
+        case $(uname -r) in *asahi*|*aurora*|*-sep-ARCH*) profile=asahi ;; *) profile=server ;; esac
+      fi ;;
     *) echo "Unsupported OS: $(uname -s)" >&2; exit 2 ;;
   esac
 fi

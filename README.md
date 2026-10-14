@@ -1,7 +1,7 @@
 # Dotfiles
 
 Shell, editor, toolchain and desktop configuration for three kinds of machine:
-a Mac, a Fedora Asahi laptop (the same Apple Silicon hardware, dual booted),
+a Mac, an Apple Silicon Linux laptop (Fedora Asahi or Arch ARM/Aurora),
 and headless Linux servers such as the homelab. One repo, one command, a
 profile per machine. [GNU Stow](https://www.gnu.org/software/stow/) symlinks
 config into the home directory, and [mise](https://mise.jdx.dev/) installs the
@@ -17,7 +17,7 @@ git clone https://github.com/muness/dotfiles.git ~/dotfiles
 | Machine | Profile | Picked when | After the install |
 |---------|---------|-------------|-------------------|
 | Mac | `mac` | Darwin | [Grant yabai/skhd accessibility](#macos-quick-start), then restart the terminal |
-| Fedora Asahi laptop | `asahi` | Linux kernel name contains `asahi` | Reboot into COSMIC, set up 1Password. Full runbook: [docs/asahi-dual-boot.md](docs/asahi-dual-boot.md) |
+| Apple Silicon laptop | `asahi` | Apple device tree, or Asahi/Aurora kernel | Reboot into COSMIC, set up 1Password. [Fedora](docs/asahi-dual-boot.md) / [Arch ARM + Aurora, including triple boot](docs/asahi-arch-aurora.md) |
 | Linux server / homelab | `server` | any other Linux | Nothing; no desktop is installed. Start a new login shell |
 
 Force a profile with `./install.sh --profile mac|asahi|server` (or
@@ -28,11 +28,18 @@ tools that are already installed are skipped.
 Debian and Ubuntu also work as `server` hosts: apt provides zsh, stow and git,
 and the installer bootstraps mise for everything else.
 
+Arch Linux ARM uses pacman for system packages and the same COSMIC desktop and
+mise tools. On a fresh native Apple Silicon Arch installation,
+`./install.sh --profile asahi --aurora` installs the pinned upstream Aurora
+kernel/boot stack with SEP writes disabled. `scripts/linux/aurora.sh` also runs
+independently. See the [Arch/Aurora runbook](docs/asahi-arch-aurora.md) for boot
+isolation, private COSMIC settings transfer, and deliberate Touch ID activation.
+
 ## What differs by OS
 
-| | macOS (`mac`) | Fedora Asahi (`asahi`) | Server (`server`) |
+| | macOS (`mac`) | Apple Silicon Linux (`asahi`) | Server (`server`) |
 |---|---|---|---|
-| System packages | `Brewfile` (formulae and casks) | dnf, flatpak (Zed, Obsidian, Vesktop, Caffeine Applet), ChatGPT RPM | dnf (apt on Debian) |
+| System packages | `Brewfile` (formulae and casks) | dnf or pacman; flatpak (Zed, Obsidian, Vesktop, Caffeine Applet); ChatGPT RPM on Fedora | dnf, pacman, or apt |
 | CLI tools and runtimes | mise | mise | mise |
 | Desktop and windows | yabai, skhd, borders, Raycast | COSMIC and its tiling | none |
 | Screenshots | built-in tools; `shot-share` for links | `shot-annotate` (cosmic-screenshot into Satty); `shot-share` | none |
@@ -48,7 +55,7 @@ Cargo and sccache settings, and the mise toolchain list.
 **Add a CLI tool or language runtime.** Add one line to
 `mise/.config/mise/config.toml` (for example `hyperfine = "latest"`), then run
 `mise install`. Every machine gets it the next time it pulls and installs.
-The Brewfile and the dnf and apt lists hold only what mise can't: shells and
+The Brewfile and the dnf, pacman and apt lists hold only what mise can't: shells and
 zsh plugins, stow, GUI apps, and system or kernel-level packages.
 
 **Python is always mise's.** `python = "3.14"` is pinned in that file, and

@@ -58,6 +58,7 @@ fi
 
 for _autosug in \
   /opt/homebrew/share/zsh-autosuggestions/zsh-autosuggestions.zsh \
+  /usr/share/zsh/plugins/zsh-autosuggestions/zsh-autosuggestions.zsh \
   /usr/share/zsh-autosuggestions/zsh-autosuggestions.zsh; do
   if [[ -r $_autosug ]]; then
     source "$_autosug"
@@ -118,6 +119,7 @@ export PATH
 # Syntax highlighting must be sourced after other interactive shell setup.
 for _highlight in \
   /opt/homebrew/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh \
+  /usr/share/zsh/plugins/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh \
   /usr/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh; do
   if [[ -r $_highlight ]]; then
     source "$_highlight"
