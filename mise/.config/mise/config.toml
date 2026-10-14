@@ -26,3 +26,12 @@ jq = "latest"
 shellcheck = "latest"
 shfmt = "latest"
 gitleaks = "latest"
+
+# Dev and infra tools that Homebrew used to carry. All ship linux-arm64 builds.
+marksman = "latest"
+terraform = "latest"
+typst = "latest"
+d2 = "latest"
+cloudflared = "latest"
+coder = "latest"
+java = ["temurin-21", "temurin-17"]

@@ -6,7 +6,8 @@
 source "$dotfiles_dir/scripts/linux/common.sh"
 
 # The portable CLI set (fzf, fd, bat, rg, zoxide, direnv, atuin, starship, gh,
-# jq, uv, sccache, shellcheck, shfmt, gitleaks) comes from mise, not dnf.
+# jq, uv, sccache, shellcheck, shfmt, gitleaks, terraform, typst, d2, marksman,
+# cloudflared, coder, java) comes from mise, not dnf.
 dnf_packages=(
   # Shell and dotfiles plumbing
   zsh zsh-autosuggestions zsh-syntax-highlighting stow git git-lfs curl wget
@@ -15,16 +16,16 @@ dnf_packages=(
   protobuf-compiler zig bats ansible
   # Java comes from mise; Fedora 44 has no java-17/21 -devel packages.
   # Docs and media
-  pandoc vips-tools espeak-ng
+  pandoc vips-tools espeak-ng whisper-cpp
   # Network and services
   caddy iperf3 lftp tailscale
   # Hardware, disks, images
-  smartmontools dfu-util qemu-system-aarch64 squashfs-tools xorriso
+  smartmontools dfu-util qemu-system-aarch64 squashfs-tools xorriso android-tools ollama
   # Containers
   podman distrobox
 )
 
-desktop_packages=(flatpak keepassxc syncthing chromium 1password-cli
+desktop_packages=(flatpak keepassxc syncthing chromium vlc 1password-cli
   # Screenshots: cosmic-screenshot captures, Satty annotates (see install_satty).
   cosmic-screenshot wl-clipboard google-noto-color-emoji-fonts)
 # Satty has no Fedora RPM or Flathub build and its release binary is x86-64

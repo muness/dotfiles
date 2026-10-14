@@ -232,6 +232,13 @@ listing.
 | Discord | cask | Vesktop flatpak (official client is x86_64 only) |
 | HQPlayer Desktop | manual | Debian 13 arm64 build in a distrobox: `scripts/linux/hqplayer-distrobox.sh <deb>`. Desktop 6 lists Debian 13 arm64; check your 5.x downloads for a Debian 12 arm64 build first. Or ask Signalyst for a Fedora aarch64 Desktop build (Embedded has one) |
 | Tern | manual | no Linux build found |
+| Claude, ChatGPT, Codex desktop apps | casks | none; use the web apps (Claude Code CLI is installed) |
+| Beeper | cask | not on Flathub; check Beeper's own AppImage |
+| Fork | cask | none; `gitg` or `meld` are in dnf, or use `gh` and the CLI |
+| tectonic | brew | not in mise or dnf; typst (mise) covers most of it |
+| Android command-line tools | cask | not checked for aarch64; `android-tools` (adb, fastboot) is installed via dnf |
+| Raycast, Homerow, Maccy, BetterTouchTool, Mountain Duck, OpenMTP, macFUSE | casks | no Linux version; COSMIC's launcher, clipboard and tiling cover the first four |
+| Tuple | cask | none |
 | Screenshots (Screendrop, ScreenshotX) | apps | `cosmic-screenshot` (dnf) to capture, Satty to annotate. Satty has no RPM, Flathub or aarch64 release, so `install_satty` builds it with `cargo install` |
 | swamp | brew tap | built with `cargo install` |
 | Slack, Zoom, Teams, WhatsApp | apps | browser |

@@ -1,10 +1,9 @@
-# macOS packages. The portable CLI set (starship, fzf, ripgrep, gh, uv, ...)
+# macOS packages. The portable CLI set (starship, fzf, ripgrep, gh, uv, terraform, java, ...)
 # lives in mise/.config/mise/config.toml and is installed by mise on every OS.
 # Linux system packages live in scripts/linux/fedora.sh.
 
 tap "asmvik/formulae"
 tap "FelixKratz/formulae"
-tap "hashicorp/tap"
 tap "open-horizon-labs/tap"
 
 # Shell and dotfiles plumbing
@@ -24,26 +23,18 @@ brew "ninja"
 brew "automake"
 brew "protobuf"
 brew "zig"
-brew "marksman"
-brew "openjdk@17"
-brew "openjdk@21"
-brew "hashicorp/tap/terraform"
 brew "ansible"
 brew "open-horizon-labs/tap/swamp"
 
 # Docs and media
 brew "pandoc"
 brew "tectonic"
-brew "typst"
-brew "d2"
 brew "vips"
 brew "whisper.cpp"
 brew "espeak-ng"
 
 # Network and services
 brew "caddy"
-brew "cloudflared"
-brew "coder"
 brew "iperf3"
 brew "lftp"
 
