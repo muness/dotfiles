@@ -12,6 +12,14 @@ export EDITOR=vim
 export VISUAL=vim
 export PAGER=${PAGER:-less}
 
+# Ctrl-V is zsh's quoted-insert widget. In Tern, pressing it before a paste
+# quotes the ESC from the bracketed-paste marker and leaves the marker visible
+# in the command line. Tern handles paste itself (Ctrl-Shift-V), so don't let
+# Ctrl-V arm quoted-insert in its Linux terminal.
+if [[ $OSTYPE == linux* && $TERM_PROGRAM == tern ]]; then
+  bindkey -r '^V'
+fi
+
 if [[ $OSTYPE == darwin* && -d /opt/homebrew/opt/coreutils/libexec/gnubin ]]; then
   path=(/opt/homebrew/opt/coreutils/libexec/gnubin $path)
 fi
