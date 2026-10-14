@@ -22,6 +22,10 @@ curl -fsSL "https://downloads.1password.com/linux/tar/stable/$arch/1password-lat
 src=$(find "$tmp" -mindepth 1 -maxdepth 1 -type d -name '1password-*' | head -1)
 [[ -n $src ]] || { echo 'Unexpected 1Password tarball layout' >&2; exit 1; }
 
+# System authentication requires a root-owned application. Extraction as the
+# regular user otherwise preserves user ownership when sudo moves the files.
+# Do this before after-install.sh sets the helper groups and setgid bits.
+sudo chown -R root:root "$src"
 sudo rm -rf /opt/1Password
 sudo mv "$src" /opt/1Password
 sudo /opt/1Password/after-install.sh

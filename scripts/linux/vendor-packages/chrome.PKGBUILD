@@ -35,8 +35,11 @@ package() {
   done
   install -Dm644 "$pkgdir/opt/google/chrome/WidevineCdm/LICENSE" \
     "$pkgdir/usr/share/licenses/$pkgname/WidevineCdm-LICENSE"
-  install -Dm644 "$pkgdir/usr/share/doc/google-chrome-stable/copyright" \
-    "$pkgdir/usr/share/licenses/$pkgname/copyright"
+  # Some official builds omit the Debian copyright file.
+  if [[ -f $pkgdir/usr/share/doc/google-chrome-stable/copyright ]]; then
+    install -Dm644 "$pkgdir/usr/share/doc/google-chrome-stable/copyright" \
+      "$pkgdir/usr/share/licenses/$pkgname/copyright"
+  fi
   sed -i '/^Exec=/i StartupWMClass=Google-chrome' "$pkgdir/usr/share/applications/google-chrome.desktop"
   rm -rf "$pkgdir/etc/apt" "$pkgdir/etc/cron.daily" "$pkgdir/opt/google/chrome/cron" \
     "$pkgdir/usr/share/doc" "$pkgdir/usr/share/menu"
