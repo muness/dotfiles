@@ -27,7 +27,7 @@ dnf_packages=(
   podman distrobox
 )
 
-desktop_packages=(flatpak keepassxc syncthing chromium vlc openssh-askpass
+desktop_packages=(flatpak keepassxc syncthing chromium vlc openssh-askpass jq
   # Screenshots: cosmic-screenshot captures, Satty annotates (see install_satty).
   cosmic-screenshot wl-clipboard google-noto-color-emoji-fonts)
 # Satty has no Fedora RPM or Flathub build and its release binary is x86-64

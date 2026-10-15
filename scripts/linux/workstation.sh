@@ -19,6 +19,26 @@ install_desktop_flatpaks() {
   flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
   flatpak install --user -y --noninteractive flathub "${desktop_flatpaks[@]}"
   install_caffeine_applet
+  install_vicinae
+}
+
+# Install Vicinae's native Linux build for the current architecture, then keep
+# its launcher daemon running for keyboard activation. Upstream supports x86_64
+# and aarch64 AppImages and can install without root under ~/.local.
+install_vicinae() {
+  if ! command -v vicinae >/dev/null 2>&1; then
+    (
+      local installer
+      installer=$(mktemp)
+      trap 'rm -f "$installer"' EXIT
+      curl -fsSL https://vicinae.com/install -o "$installer"
+      bash "$installer" --prefix "$HOME/.local"
+    )
+  fi
+
+  systemctl --user daemon-reload
+  systemctl --user enable --now vicinae.service ||
+    echo 'warning: enable vicinae.service after logging into the desktop session' >&2
 }
 
 # Install the native COSMIC applet and add it to the panel's right wing.

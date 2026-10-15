@@ -44,7 +44,7 @@ and builds local pacman packages, so no AUR helper or Debian/RPM tools are neede
 
 | | macOS (`mac`) | Apple Silicon Linux (`asahi`) | Server (`server`) |
 |---|---|---|---|
-| System packages | `Brewfile` (formulae and casks) | dnf or pacman; flatpak (Zed, Obsidian, Vesktop, Caffeine Applet); native Chrome/ChatGPT (vendor RPMs on Fedora, locally repackaged vendor binaries on Arch) | dnf, pacman, or apt |
+| System packages | `Brewfile` (formulae and casks) | dnf or pacman; flatpak (Zed, Obsidian, Vesktop, Caffeine Applet); Vicinae; native Chrome/ChatGPT (vendor RPMs on Fedora, locally repackaged vendor binaries on Arch) | dnf, pacman, or apt |
 | CLI tools and runtimes | mise | mise | mise |
 | Desktop and windows | yabai, skhd, borders, Raycast | COSMIC and its tiling | none |
 | Screenshots | built-in tools; `shot-share` for links | `shot-annotate` (cosmic-screenshot into Satty); `shot-share` | none |
@@ -118,6 +118,10 @@ The Fedora desktop setup adds the Caffeine applet to the COSMIC panel and
 enables Tailscale's Linux systray in COSMIC's Status Area. Log out and back in
 after the first setup to refresh the panel. Then run `sudo tailscale up` once to
 connect this machine to the Fleet tailnet.
+
+Vicinae is installed for desktop profiles on Fedora and Arch Linux, and its
+user service starts at login. Invoke it with `vicinae toggle`; add that command
+as a custom shortcut in COSMIC Settings → Keyboard if you want a launcher key.
 
 ## macOS quick start
 
