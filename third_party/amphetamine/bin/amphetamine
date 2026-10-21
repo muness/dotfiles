@@ -1,0 +1,919 @@
+#!/usr/bin/env bash
+#
+# Amphetamine for Omarchy & Linux
+#
+# Keeps the system awake with the laptop lid closed, and — the part the
+# kernel will not do for you — powers the internal panel down while it is
+# shut, so a closed laptop running a long job does not cook itself.
+#
+# https://github.com/ChaseC-130/amphetamine
+
+set -euo pipefail
+
+readonly APP_NAME="Amphetamine"
+readonly APP_VERSION="2.0.1"
+readonly APP_GLYPH="󰛊"
+
+readonly STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
+readonly STATE_DIR="$STATE_HOME/amphetamine"
+readonly STATE_FILE="$STATE_DIR/state.json"
+readonly CONFIG_FILE="$STATE_DIR/config.json"
+# Set while *we* hold the internal panel off, so a restore only ever undoes
+# our own doing and a crashed session can still be cleaned up afterwards.
+readonly DISPLAY_OFF_FLAG="$STATE_DIR/display-off"
+# Same idea for Omarchy's idle indicator: only release what we acquired.
+readonly STAY_AWAKE_FLAG="$STATE_DIR/stay-awake-owned"
+readonly OMARCHY_STAY_AWAKE="$STATE_HOME/omarchy/indicators/stay-awake"
+# Serializes the mutating paths. The bar widget and the CLI drive the same
+# state file, and a start racing a stop can otherwise reap the very session it
+# just wrote.
+readonly LOCK_FILE="$STATE_DIR/.lock"
+
+SELF="$(readlink -f "${BASH_SOURCE[0]}")"
+readonly SELF
+
+# The preset ladder the bar widget and `on <duration>` both draw from. Users
+# can replace it wholesale via `amphetamine config set presets '[...]'`.
+readonly DEFAULT_PRESETS='["5m","10m","15m","30m","1h","2h","4h","8h"]'
+
+die() {
+  echo "$APP_NAME: $*" >&2
+  exit 1
+}
+
+require_jq() {
+  command -v jq >/dev/null 2>&1 || die "jq is required but not installed (try: omarchy pkg add jq)"
+}
+
+# Held for the life of the calling process; re-locking an fd we already own is
+# a no-op, so nested callers (start_session -> stop_session) are safe. Best
+# effort: without flock we simply fall back to the unsynchronized path.
+acquire_lock() {
+  command -v flock >/dev/null 2>&1 || return 0
+  mkdir -p "$STATE_DIR" || return 0
+  # The braces matter: a redirection on a bare `exec` applies to the shell for
+  # the rest of its life, so `exec 9>... 2>/dev/null` would silently discard
+  # every error message this script goes on to print.
+  { exec 9>"$LOCK_FILE"; } 2>/dev/null || return 0
+  flock -w 10 9 2>/dev/null || return 0
+}
+
+# ---------------------------------------------------------------- config
+
+config_defaults() {
+  jq -n --argjson presets "$DEFAULT_PRESETS" '{
+    keepDisplayAwake: true,
+    displayOffOnLidClose: true,
+    defaultDuration: "indefinite",
+    notifications: true,
+    pollIntervalSec: 2,
+    presets: $presets
+  }'
+}
+
+# Backfill any key a newer version added, without disturbing the answers
+# already in the file. `config list` and the bar dropdown both read this file
+# directly, so it has to be complete rather than rely on in-code fallbacks.
+init_config() {
+  mkdir -p "$STATE_DIR"
+
+  if [[ ! -f $CONFIG_FILE ]]; then
+    config_defaults >"$CONFIG_FILE"
+    return 0
+  fi
+
+  jq -e . "$CONFIG_FILE" >/dev/null 2>&1 || {
+    mv "$CONFIG_FILE" "$CONFIG_FILE.corrupt.$(date +%s)"
+    config_defaults >"$CONFIG_FILE"
+    return 0
+  }
+
+}
+
+backfill_config() {
+  local merged
+  merged=$(jq -s '.[0] * .[1]' <(config_defaults) "$CONFIG_FILE" 2>/dev/null) || return 0
+
+  # Only rewrite when a key is genuinely missing. The bar widget watches this
+  # file, and rewriting it on every read would retrigger that watcher — and
+  # bump its mtime — for a file whose contents did not change.
+  jq -e --argjson merged "$merged" '. == $merged' "$CONFIG_FILE" >/dev/null 2>&1 && return 0
+
+  local tmp
+  tmp=$(mktemp "$STATE_DIR/.config.XXXXXX")
+  printf '%s\n' "$merged" >"$tmp" && mv "$tmp" "$CONFIG_FILE" || rm -f "$tmp"
+}
+
+# v1 spelled two of these differently, and one of them inverted. Rewrite them
+# in place the first time we see them so an upgrade keeps the user's answer
+# rather than silently reverting to the default.
+migrate_config() {
+  jq -e 'has("allowDisplaySleep") or has("turnOffDisplayOnLidClose")' \
+    "$CONFIG_FILE" >/dev/null 2>&1 || return 0
+
+  local tmp
+  tmp=$(mktemp "$STATE_DIR/.config.XXXXXX")
+  jq '
+    (if has("keepDisplayAwake") then . else
+       .keepDisplayAwake = ((.allowDisplaySleep // false) | not) end)
+    | (if has("displayOffOnLidClose") then . else
+         .displayOffOnLidClose = (.turnOffDisplayOnLidClose // true) end)
+    | del(.allowDisplaySleep, .turnOffDisplayOnLidClose)
+  ' "$CONFIG_FILE" >"$tmp" && mv "$tmp" "$CONFIG_FILE" || rm -f "$tmp"
+}
+
+# Order matters: a v1 key has to be rewritten into its v2 spelling before the
+# backfill lands a default on top of the question it already answered.
+#
+# Memoized: every config_raw call routes through here, and re-running the
+# create/migrate/backfill trio per lookup cost four jq spawns a time — 27 of
+# them for a single `capabilities`, which the bar widget polls while open.
+config_ready_done=0
+config_ready() {
+  (( config_ready_done )) && return 0
+  require_jq
+  init_config
+  migrate_config
+  backfill_config
+  config_ready_done=1
+}
+
+config_raw() {
+  local key="$1" fallback="$2"
+  config_ready
+  local value
+  value=$(jq -r --arg k "$key" 'if has($k) and .[$k] != null then (.[$k] | tostring) else empty end' \
+    "$CONFIG_FILE" 2>/dev/null || true)
+  [[ -n $value ]] && printf '%s\n' "$value" || printf '%s\n' "$fallback"
+}
+
+config_bool() {
+  local value
+  value=$(config_raw "$1" "$2")
+  [[ $value == true ]] && echo true || echo false
+}
+
+config_int() {
+  local value
+  value=$(config_raw "$1" "$2")
+  [[ $value =~ ^[0-9]+$ ]] && echo "$value" || echo "$2"
+}
+
+config_presets() {
+  config_ready
+  local presets
+  presets=$(jq -c 'if (.presets | type) == "array" and (.presets | length) > 0
+                   then .presets else empty end' "$CONFIG_FILE" 2>/dev/null || true)
+  printf '%s\n' "${presets:-$DEFAULT_PRESETS}"
+}
+
+set_config() {
+  local key="$1" raw="$2"
+  config_ready
+
+  local encoded
+  if [[ $raw == true || $raw == false || $raw == null ]]; then
+    encoded="$raw"
+  elif [[ $raw =~ ^-?[0-9]+$ ]]; then
+    encoded="$raw"
+  elif jq -e 'type == "array" or type == "object"' <<<"$raw" >/dev/null 2>&1; then
+    encoded="$raw"
+  else
+    encoded=$(jq -Rn --arg v "$raw" '$v')
+  fi
+
+  local tmp
+  tmp=$(mktemp "$STATE_DIR/.config.XXXXXX")
+  jq --arg k "$key" --argjson v "$encoded" '.[$k] = $v' "$CONFIG_FILE" >"$tmp" \
+    && mv "$tmp" "$CONFIG_FILE" || { rm -f "$tmp"; die "could not write $CONFIG_FILE"; }
+  echo "$key = $raw"
+}
+
+# ---------------------------------------------------------------- output
+
+notify() {
+  local headline="$1" body="$2"
+  [[ $(config_bool notifications true) == true ]] || return 0
+
+  if command -v omarchy-notification-send >/dev/null 2>&1; then
+    omarchy-notification-send --app-name "$APP_NAME" -g "$APP_GLYPH" "$headline" "$body" >/dev/null 2>&1 || true
+  elif command -v notify-send >/dev/null 2>&1; then
+    notify-send -a "$APP_NAME" -i preferences-system-power "$headline" "$body" >/dev/null 2>&1 || true
+  fi
+}
+
+# ---------------------------------------------------------------- hardware
+
+lid_present() {
+  compgen -G "/proc/acpi/button/lid/*/state" >/dev/null 2>&1 && return 0
+  [[ $(busctl --timeout=1 get-property org.freedesktop.UPower /org/freedesktop/UPower org.freedesktop.UPower LidIsPresent 2>/dev/null || true) == "b true" ]]
+}
+
+lid_closed() {
+  local reported
+  reported=$(busctl --timeout=1 get-property org.freedesktop.login1 /org/freedesktop/login1 org.freedesktop.login1.Manager LidClosed 2>/dev/null || true)
+  case "$reported" in
+    "b true") return 0 ;;
+    "b false") return 1 ;;
+  esac
+  local state
+  for state in /proc/acpi/button/lid/*/state; do
+    [[ -r $state ]] || continue
+    [[ $(<"$state") == *closed* ]] && return 0
+  done
+  return 1
+}
+
+omarchy_shell_running() {
+  pgrep -f 'quickshell.*omarchy/shell' >/dev/null 2>&1
+}
+
+is_laptop() {
+  lid_present || compgen -G "/sys/class/power_supply/BAT*" >/dev/null 2>&1
+}
+
+# Connector names are interpolated into a Hyprland dispatch string, so only a
+# plain connector name is ever allowed through.
+safe_connector() {
+  [[ $1 =~ ^[A-Za-z0-9._-]+$ ]]
+}
+
+internal_display() {
+  command -v hyprctl >/dev/null 2>&1 || return 1
+  local name
+  name=$(hyprctl monitors all -j 2>/dev/null \
+    | jq -r 'first(.[] | select(.name | test("^(eDP|LVDS|DSI)-")) | .name) // empty' 2>/dev/null || true)
+  [[ -n $name ]] && safe_connector "$name" && printf '%s\n' "$name"
+}
+
+external_displays() {
+  local status name
+  for status in /sys/class/drm/card*-*/status; do
+    [[ -e $status ]] || continue
+    [[ $status =~ -(eDP|LVDS|DSI)-[^/]+/status$ ]] && continue
+    [[ $(<"$status") == connected ]] || continue
+    name=${status%/status}
+    name=${name##*/}
+    # card1-HDMI-A-1 -> HDMI-A-1
+    printf '%s\n' "${name#*-}"
+  done
+}
+
+external_displays_connected() {
+  [[ -n $(external_displays | head -1) ]]
+}
+
+# hyprctl exits 0 on a dispatch it could not parse on some versions, so the
+# reply body is what decides whether the call landed.
+hypr_dispatch() {
+  local out
+  out=$(hyprctl dispatch "$1" 2>&1) || return 1
+  [[ $out == ok* ]]
+}
+
+# Which mechanism, if any, can power the internal panel down on this machine.
+display_control() {
+  if [[ -n $(internal_display) ]]; then
+    echo hyprland
+  elif command -v wlopm >/dev/null 2>&1; then
+    echo wlopm
+  else
+    echo none
+  fi
+}
+
+dpms_internal() {
+  local action="$1" monitor lua_action
+  case "$action" in on) lua_action=enable ;; off) lua_action=disable ;; *) return 1 ;; esac
+  monitor=$(internal_display) || monitor=""
+
+  if [[ -n $monitor ]]; then
+    # Hyprland >= 0.50 speaks Lua dispatches; older releases take the flat form.
+    hypr_dispatch "hl.dsp.dpms({ action = \"$lua_action\", monitor = \"$monitor\" })" && return 0
+    hypr_dispatch "dpms $action $monitor" && return 0
+  fi
+
+  if command -v wlopm >/dev/null 2>&1 && [[ -n $monitor ]]; then
+    wlopm --"$action" "$monitor" >/dev/null 2>&1 && return 0
+  fi
+  return 1
+}
+
+# ------------------------------------------------------- idle passthrough
+
+# Omarchy's screensaver and auto-lock read one indicator file. Go through the
+# supported command when it exists so we stay correct if that path moves.
+stay_awake_acquire() {
+  [[ -f $OMARCHY_STAY_AWAKE ]] && return 0   # someone else already owns it
+  if command -v omarchy-toggle-idle >/dev/null 2>&1; then
+    omarchy-toggle-idle stay-awake >/dev/null 2>&1 || return 0
+  else
+    mkdir -p "$(dirname "$OMARCHY_STAY_AWAKE")"
+    touch "$OMARCHY_STAY_AWAKE"
+  fi
+  : >"$STAY_AWAKE_FLAG"
+}
+
+stay_awake_release() {
+  [[ -f $STAY_AWAKE_FLAG ]] || return 0
+  rm -f "$STAY_AWAKE_FLAG"
+  if command -v omarchy-toggle-idle >/dev/null 2>&1; then
+    omarchy-toggle-idle allow-idle >/dev/null 2>&1 || true
+  else
+    rm -f "$OMARCHY_STAY_AWAKE"
+  fi
+}
+
+# ---------------------------------------------------------------- durations
+
+# "15m" -> 900. Bare numbers are seconds. Prints nothing and fails on garbage.
+duration_seconds() {
+  local raw="${1:-}"
+  case "$raw" in
+    ""|indefinite|indefinitely|forever|infinite|inf|0) echo 0; return 0 ;;
+  esac
+  [[ $raw =~ ^([0-9]+)([smhd]?)$ ]] || return 1
+  local n="${BASH_REMATCH[1]}" unit="${BASH_REMATCH[2]}"
+  case "$unit" in
+    ""|s) echo "$n" ;;
+    m) echo $((n * 60)) ;;
+    h) echo $((n * 3600)) ;;
+    d) echo $((n * 86400)) ;;
+  esac
+}
+
+# "1 hour", "15 minutes" — the wording the panel and notifications use.
+duration_title() {
+  local s="$1"
+  (( s == 0 )) && { echo "Indefinitely"; return; }
+  if (( s < 60 )); then
+    (( s == 1 )) && echo "1 second" || echo "$s seconds"
+  elif (( s < 3600 )); then
+    local m=$((s / 60)) rest=$((s % 60))
+    if (( rest > 0 )); then
+      echo "${m}m ${rest}s"
+    else
+      (( m == 1 )) && echo "1 minute" || echo "$m minutes"
+    fi
+  elif (( s < 86400 )); then
+    local h=$((s / 3600)) rest=$(((s % 3600) / 60))
+    if (( rest > 0 )); then
+      echo "${h}h ${rest}m"
+    else
+      (( h == 1 )) && echo "1 hour" || echo "$h hours"
+    fi
+  else
+    local d=$((s / 86400))
+    (( d == 1 )) && echo "1 day" || echo "$d days"
+  fi
+}
+
+# "15m", "1h", "∞" — the compact form for the bar.
+duration_label() {
+  local s="$1"
+  (( s == 0 )) && { echo "∞"; return; }
+  if (( s < 60 )); then
+    echo "<1m"
+  elif (( s < 3600 )); then
+    echo "$((s / 60))m"
+  elif (( s % 3600 == 0 )); then
+    echo "$((s / 3600))h"
+  else
+    echo "$((s / 3600))h$(((s % 3600) / 60))m"
+  fi
+}
+
+# ---------------------------------------------------------------- state
+
+read_state() {
+  local expr="$1" fallback="${2:-}"
+  [[ -f $STATE_FILE ]] || { printf '%s\n' "$fallback"; return; }
+  local value
+  value=$(jq -r "$expr // empty" "$STATE_FILE" 2>/dev/null || true)
+  printf '%s\n' "${value:-$fallback}"
+}
+
+# A single writer (the session process) owns this file, and the bar widget
+# tails it — so it is replaced atomically, never appended to in place.
+write_state() {
+  local pid="$1" duration="$2" expires="$3" started="$4" keep_awake="$5" display_off="$6"
+  local tmp
+  tmp=$(mktemp "$STATE_DIR/.state.XXXXXX")
+  jq -n \
+    --argjson pid "$pid" \
+    --argjson duration "$duration" \
+    --argjson expiresAt "$expires" \
+    --argjson startedAt "$started" \
+    --argjson keepDisplayAwake "$keep_awake" \
+    --argjson displayOffOnLidClose "$display_off" \
+    --arg mode "$([[ $duration -eq 0 ]] && echo indefinite || echo timer)" \
+    --arg label "$(duration_label "$duration")" \
+    --arg title "$(duration_title "$duration")" \
+    '{active: true, pid: $pid, mode: $mode, label: $label, title: $title,
+      duration: $duration, startedAt: $startedAt, expiresAt: $expiresAt,
+      keepDisplayAwake: $keepDisplayAwake, displayOffOnLidClose: $displayOffOnLidClose}' \
+    >"$tmp" && mv "$tmp" "$STATE_FILE" || { rm -f "$tmp"; die "could not write $STATE_FILE"; }
+}
+
+session_pid() {
+  read_state '.pid' ""
+}
+
+is_active() {
+  local pid
+  pid=$(session_pid)
+  [[ -n $pid ]] && kill -0 "$pid" 2>/dev/null && return 0
+  # Stale file: the session died without cleaning up after itself. Re-read
+  # before deleting -- a concurrent `on` may have replaced the file since the
+  # read above, and reaping that would orphan a session that is very much alive.
+  [[ -f $STATE_FILE && $(session_pid) == "$pid" ]] && reap_stale
+  return 1
+}
+
+reap_stale() {
+  rm -f "$STATE_FILE"
+  restore_display
+  stay_awake_release
+}
+
+# ---------------------------------------------------------------- display
+
+restore_display() {
+  [[ -f $DISPLAY_OFF_FLAG ]] || return 0
+  rm -f "$DISPLAY_OFF_FLAG"
+  dpms_internal on || true
+}
+
+# How many consecutive polls the lid has been shut for. Only the session loop
+# reads or writes it, so it lives here rather than being threaded through.
+lid_closed_ticks=0
+
+# One pass of the lid watch. Called on every poll while a session is running
+# with displayOffOnLidClose set.
+lid_tick() {
+  if ! lid_closed; then
+    restore_display
+    lid_closed_ticks=0
+    return
+  fi
+
+  # Docked with the lid shut is clamshell mode: the compositor already
+  # disables the internal output, and fighting it would flap the layout.
+  if external_displays_connected; then
+    lid_closed_ticks=0
+    return
+  fi
+
+  [[ -f $DISPLAY_OFF_FLAG ]] || : >"$DISPLAY_OFF_FLAG"
+  lid_closed_ticks=$((lid_closed_ticks + 1))
+
+  # Omarchy's own lid-close hook re-enables the internal output a beat after
+  # the switch fires, and the lock surface can nudge it again. Re-assert
+  # eagerly through that window, then only occasionally for the long haul.
+  if (( lid_closed_ticks <= 8 || lid_closed_ticks % 5 == 0 )); then
+    dpms_internal off || true
+  fi
+}
+
+# ---------------------------------------------------------------- session
+
+current_pgid() {
+  ps -o pgid= -p $$ 2>/dev/null | tr -d '[:space:]'
+}
+
+# Internal. Runs as a child of `systemd-inhibit`, in its own process group, and
+# holds the whole session: the inhibitor lives exactly as long as this loop.
+cmd_session() {
+  local duration_sec="$1"
+  # start_session already closes fd 9 on the launch line so neither setsid nor
+  # systemd-inhibit inherits the lock; drop any stray copy here too, because a
+  # session that held it would block every later call for the flock timeout.
+  exec 9>&- 2>/dev/null || true
+  local pgid
+  pgid=$(current_pgid)
+  [[ $pgid =~ ^[0-9]+$ ]] || die "could not determine process group"
+  SESSION_PGID="$pgid"
+
+  local keep_awake display_off poll
+  keep_awake=$(config_bool keepDisplayAwake true)
+  display_off=$(config_bool displayOffOnLidClose true)
+  poll=$(config_int pollIntervalSec 2)
+  (( poll < 1 )) && poll=1
+
+  local now expires=0
+  now=$(date +%s)
+  (( duration_sec > 0 )) && expires=$((now + duration_sec))
+
+  [[ $keep_awake == true ]] && stay_awake_acquire
+
+  write_state "$pgid" "$duration_sec" "$expires" "$now" "$keep_awake" "$display_off"
+
+  trap 'session_cleanup expired' EXIT
+  trap 'trap - EXIT; session_cleanup stopped; exit 0' TERM INT HUP
+
+  while :; do
+    if [[ $display_off == true ]] && lid_present; then
+      lid_tick
+    fi
+    if (( duration_sec > 0 )) && (( $(date +%s) >= expires )); then
+      break
+    fi
+    sleep "$poll"
+  done
+}
+
+# Runs from the session's own EXIT/TERM trap. A restart tears the old session
+# down and starts a new one immediately, so a dying session that finds someone
+# else's pid in the state file has been superseded and must touch nothing:
+# releasing the idle hold or powering the panel back on would undo the
+# successor's setup a fraction of a second after it ran.
+session_cleanup() {
+  local reason="${1:-stopped}"
+
+  if [[ $(read_state '.pid' "") != "${SESSION_PGID:-}" ]]; then
+    return 0
+  fi
+
+  restore_display
+  stay_awake_release
+  rm -f "$STATE_FILE"
+  if [[ $reason == expired ]]; then
+    notify "Session ended" "Normal sleep and lid behavior restored."
+  fi
+}
+
+start_session() {
+  local requested="${1:-}" quiet="${2:-}"
+  acquire_lock
+  config_ready
+
+  [[ -n $requested ]] || requested=$(config_raw defaultDuration indefinite)
+
+  local duration_sec
+  duration_sec=$(duration_seconds "$requested") \
+    || die "invalid duration '$requested' (try 15m, 30m, 1h, 2h, or indefinite)"
+
+  command -v systemd-inhibit >/dev/null 2>&1 \
+    || die "systemd-inhibit not found; this needs a systemd-logind session"
+
+  stop_session quiet
+
+  local what="sleep:handle-lid-switch"
+  [[ $(config_bool keepDisplayAwake true) == true ]] && what="sleep:idle:handle-lid-switch"
+
+  local title
+  title=$(duration_title "$duration_sec")
+
+  # setsid --fork detaches the whole thing into its own session, so the
+  # process group id doubles as the handle we later signal to tear it down.
+  setsid --fork systemd-inhibit \
+    --what="$what" \
+    --who="$APP_NAME" \
+    --why="Keep awake ($title)" \
+    "$SELF" __session "$duration_sec" </dev/null >/dev/null 2>&1 9>&- &
+
+  # The session process writes the state file itself; wait for it to appear so
+  # callers (and the bar widget) never observe a half-started session.
+  local waited=0
+  while (( waited < 60 )); do
+    is_active && break
+    sleep 0.05
+    waited=$((waited + 1))
+  done
+
+  is_active || die "session failed to start"
+
+  [[ $quiet == quiet ]] && return 0
+
+  local detail="System sleep and lid-close suspend inhibited."
+  if [[ $(config_bool displayOffOnLidClose true) == true ]] && lid_present; then
+    detail="Awake with the lid closed; the screen powers down when you shut it."
+  fi
+  notify "Awake · $title" "$detail"
+  echo "$APP_NAME: active ($title)"
+}
+
+stop_session() {
+  local quiet="${1:-}"
+  acquire_lock
+  local pid
+  pid=$(session_pid)
+
+  if [[ -n $pid ]] && kill -0 "$pid" 2>/dev/null; then
+    # The session, its inhibitor, and any sleep it is parked in all share the
+    # process group, so one signal takes the lot down together.
+    kill -TERM -- "-$pid" 2>/dev/null || kill -TERM "$pid" 2>/dev/null || true
+
+    # Wait for the whole group, not just its leader: the session process runs
+    # its own cleanup on the way out, and a caller that starts a replacement
+    # before that finishes would have its setup undone from under it.
+    local waited=0
+    while (( waited < 60 )) && pgrep -g "$pid" >/dev/null 2>&1; do
+      sleep 0.05
+      waited=$((waited + 1))
+    done
+    pgrep -g "$pid" >/dev/null 2>&1 && kill -KILL -- "-$pid" 2>/dev/null || true
+  fi
+
+  # Idempotent: also covers a session that died without running its trap.
+  restore_display
+  stay_awake_release
+  rm -f "$STATE_FILE"
+
+  [[ $quiet == quiet ]] && return 0
+  notify "Off" "Normal sleep and lid behavior restored."
+  echo "$APP_NAME: inactive"
+}
+
+cycle_session() {
+  config_ready
+  local presets current_sec next=""
+  presets=$(config_presets)
+
+  if ! is_active; then
+    start_session indefinite
+    return
+  fi
+
+  current_sec=$(read_state '.duration' 0)
+  if [[ $current_sec == 0 ]]; then
+    next=$(jq -r '.[0] // empty' <<<"$presets")
+  else
+    # Step to the preset after the current one; falling off the end means off.
+    next=$(jq -r --argjson cur "$current_sec" '
+      [.[]] as $p
+      | ([range(0; ($p | length))] | map(select(
+          ($p[.] | capture("^(?<n>[0-9]+)(?<u>[smhd]?)$")
+           | (.n | tonumber) * (if .u == "m" then 60 elif .u == "h" then 3600
+                                elif .u == "d" then 86400 else 1 end)) == $cur))) as $idx
+      | if ($idx | length) == 0 then "" 
+        elif ($idx[0] + 1) < ($p | length) then $p[$idx[0] + 1]
+        else "" end
+    ' <<<"$presets")
+  fi
+
+  if [[ -z $next ]]; then
+    stop_session
+  else
+    start_session "$next"
+  fi
+}
+
+# ---------------------------------------------------------------- reporting
+
+presets_json() {
+  config_ready
+  local presets
+  presets=$(config_presets)
+
+  local out='[{"value":"indefinite","label":"Indefinitely","short":"∞","seconds":0}]'
+  local raw seconds
+  while IFS= read -r raw; do
+    [[ -n $raw ]] || continue
+    seconds=$(duration_seconds "$raw") || continue
+    (( seconds > 0 )) || continue
+    out=$(jq -c \
+      --arg value "$raw" \
+      --arg label "$(duration_title "$seconds")" \
+      --arg short "$(duration_label "$seconds")" \
+      --argjson seconds "$seconds" \
+      '. + [{value: $value, label: $label, short: $short, seconds: $seconds}]' <<<"$out")
+  done < <(jq -r '.[]' <<<"$presets")
+
+  printf '%s\n' "$out"
+}
+
+capabilities_json() {
+  config_ready
+  local lid_state="absent"
+  if lid_present; then
+    lid_closed && lid_state="closed" || lid_state="open"
+  fi
+
+  jq -n \
+    --arg version "$APP_VERSION" \
+    --argjson lidPresent "$(lid_present && echo true || echo false)" \
+    --arg lidState "$lid_state" \
+    --argjson laptop "$(is_laptop && echo true || echo false)" \
+    --arg internalDisplay "$(internal_display || true)" \
+    --argjson externalDisplays "$(external_displays | jq -R . | jq -sc .)" \
+    --arg displayControl "$(display_control)" \
+    --argjson systemdInhibit "$(command -v systemd-inhibit >/dev/null 2>&1 && echo true || echo false)" \
+    --argjson hyprctl "$(command -v hyprctl >/dev/null 2>&1 && echo true || echo false)" \
+    --argjson omarchy "$(command -v omarchy >/dev/null 2>&1 && echo true || echo false)" \
+    --argjson notifications "$( { command -v omarchy-notification-send >/dev/null 2>&1 \
+                                 || command -v notify-send >/dev/null 2>&1; } && echo true || echo false)" \
+    --argjson presets "$(presets_json)" \
+    --slurpfile config "$CONFIG_FILE" \
+    '{
+      version: $version,
+      lidPresent: $lidPresent,
+      lidState: $lidState,
+      laptop: $laptop,
+      internalDisplay: (if $internalDisplay == "" then null else $internalDisplay end),
+      externalDisplays: $externalDisplays,
+      clamshell: ($lidState == "closed" and ($externalDisplays | length) > 0),
+      displayControl: $displayControl,
+      canPowerOffDisplay: ($displayControl != "none"),
+      systemdInhibit: $systemdInhibit,
+      hyprctl: $hyprctl,
+      omarchy: $omarchy,
+      notifications: $notifications,
+      presets: $presets,
+      config: $config[0]
+    }'
+}
+
+show_status() {
+  local json_mode="${1:-}"
+
+  if ! is_active; then
+    if [[ $json_mode == --json ]]; then
+      echo '{"active":false,"mode":"off","label":"Off","title":"Off","duration":0,"remaining":0}'
+    else
+      echo "$APP_NAME: inactive"
+    fi
+    return
+  fi
+
+  local now
+  now=$(date +%s)
+
+  if [[ $json_mode == --json ]]; then
+    jq --argjson now "$now" '. + {
+      remaining: (if .expiresAt > 0 then ([0, (.expiresAt - $now)] | max) else 0 end)
+    }' "$STATE_FILE"
+    return
+  fi
+
+  local title expires
+  title=$(read_state '.title' "Indefinitely")
+  expires=$(read_state '.expiresAt' 0)
+
+  local line="$APP_NAME: active ($title"
+  if (( expires > 0 )); then
+    line+=", $(duration_title $(( expires - now > 0 ? expires - now : 0 ))) left"
+  fi
+  line+=")"
+
+  [[ $(read_state '.displayOffOnLidClose' false) == true ]] && lid_present \
+    && line+=" · screen off on lid close"
+  echo "$line"
+}
+
+show_info() {
+  config_ready
+  local yn=("no" "yes")
+
+  echo "$APP_NAME $APP_VERSION"
+  echo
+  echo "System"
+  printf '  %-22s %s\n' "OS" "$(uname -s) $(uname -r)"
+  printf '  %-22s %s\n' "Desktop" "${XDG_CURRENT_DESKTOP:-unknown} ($([[ -n ${WAYLAND_DISPLAY:-} ]] && echo Wayland || echo X11))"
+  printf '  %-22s %s\n' "systemd-inhibit" "$(command -v systemd-inhibit >/dev/null 2>&1 && echo available || echo MISSING)"
+  printf '  %-22s %s\n' "hyprctl" "$(command -v hyprctl >/dev/null 2>&1 && echo available || echo "not found")"
+  printf '  %-22s %s\n' "Omarchy shell" "$(omarchy_shell_running && echo running || echo "not running")"
+  printf '  %-22s %s\n' "Notifications" "$(command -v omarchy-notification-send >/dev/null 2>&1 && echo omarchy \
+    || { command -v notify-send >/dev/null 2>&1 && echo notify-send || echo MISSING; })"
+  echo
+  echo "Hardware"
+  printf '  %-22s %s\n' "Laptop" "${yn[$(is_laptop && echo 1 || echo 0)]}"
+  printf '  %-22s %s\n' "Lid sensor" "$(lid_present && { lid_closed && echo "present (closed)" || echo "present (open)"; } || echo "none")"
+  printf '  %-22s %s\n' "Internal display" "$(internal_display || echo "not detected")"
+  printf '  %-22s %s\n' "External displays" "$(external_displays | paste -sd, - | sed 's/^$/none/')"
+  printf '  %-22s %s\n' "Display power control" "$(display_control)"
+  echo
+  echo "Configuration ($CONFIG_FILE)"
+  sed 's/^/  /' "$CONFIG_FILE"
+  echo
+  echo "Session"
+  echo "  $(show_status)"
+}
+
+run_wrapped() {
+  (( $# > 0 )) || die "usage: amphetamine run <command> [args...]"
+
+  start_session "$(config_raw defaultDuration indefinite)" quiet
+  trap 'stop_session quiet' EXIT INT TERM
+
+  notify "Awake · running" "Holding the system awake for: $1"
+
+  local code=0
+  "$@" || code=$?
+
+  trap - EXIT INT TERM
+  stop_session quiet
+  notify "Command finished" "Exit code $code. Normal sleep restored."
+  exit "$code"
+}
+
+usage() {
+  cat <<EOF
+$APP_NAME $APP_VERSION — keep Omarchy & Linux awake with the lid closed.
+
+Usage: amphetamine <command> [arguments]
+
+Session
+  on [duration]        Start a keep-awake session (15m, 30m, 1h, 2h, indefinite)
+  off                  End the session and restore normal sleep behavior
+  toggle               Start if off, stop if on
+  cycle                Step through the configured presets, then off
+  run <cmd> [args...]  Hold the system awake for exactly one command
+  status [--json]      Report the current session
+
+Machine
+  presets [--json]     List the durations offered on this machine
+  capabilities         Report lid, display, and inhibitor support as JSON
+  info                 Human-readable diagnostics
+
+Configuration
+  config list                 Show every setting
+  config get <key>            Read one setting
+  config set <key> <value>    Write one setting
+  config reset                Restore the defaults
+
+Settings
+  keepDisplayAwake      bool    Also block the screensaver and auto-lock
+  displayOffOnLidClose  bool    Power the internal panel down while the lid is shut
+  defaultDuration       string  Duration used by 'on' and the bar widget
+  notifications         bool    Desktop notifications on state changes
+  pollIntervalSec       int     How often the lid is sampled while active
+  presets               array   Durations offered in the bar dropdown
+EOF
+}
+
+# ---------------------------------------------------------------- dispatch
+
+main() {
+  case "${1:-status}" in
+    on | start)
+      start_session "${2:-}"
+      ;;
+    off | stop)
+      stop_session
+      ;;
+    toggle)
+      require_jq
+      if is_active; then stop_session; else start_session ""; fi
+      ;;
+    cycle)
+      cycle_session
+      ;;
+    status)
+      require_jq
+      show_status "${2:-}"
+      ;;
+    presets)
+      presets_json
+      ;;
+    capabilities | caps)
+      capabilities_json
+      ;;
+    info | doctor)
+      show_info
+      ;;
+    run)
+      shift
+      run_wrapped "$@"
+      ;;
+    config)
+      case "${2:-list}" in
+        set)
+          (( $# >= 4 )) || die "usage: amphetamine config set <key> <value>"
+          set_config "$3" "$4"
+          ;;
+        get)
+          (( $# >= 3 )) || die "usage: amphetamine config get <key>"
+          config_raw "$3" ""
+          ;;
+        list | show)
+          config_ready
+          cat "$CONFIG_FILE"
+          ;;
+        reset)
+          rm -f "$CONFIG_FILE"
+          config_ready
+          cat "$CONFIG_FILE"
+          ;;
+        *)
+          die "usage: amphetamine config [list|get <key>|set <key> <value>|reset]"
+          ;;
+      esac
+      ;;
+    __session)
+      require_jq
+      cmd_session "${2:-0}"
+      ;;
+    -v | --version | version)
+      echo "$APP_NAME $APP_VERSION"
+      ;;
+    -h | --help | help)
+      usage
+      ;;
+    *)
+      die "unknown command '$1'; run 'amphetamine --help'"
+      ;;
+  esac
+}
+
+main "$@"

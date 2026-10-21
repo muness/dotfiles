@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "id": "chase.amphetamine",
+  "name": "Amphetamine",
+  "version": "2.0.1",
+  "author": "Chase Cargill",
+  "license": "MIT",
+  "description": "Amphetamine for Omarchy: keep the system awake with the laptop lid closed, and power the internal display down while it is shut.",
+  "homepage": "https://github.com/ChaseC-130/amphetamine",
+  "kinds": [
+    "bar-widget"
+  ],
+  "entryPoints": {
+    "barWidget": "Amphetamine.qml"
+  },
+  "barWidget": {
+    "displayName": "Amphetamine",
+    "description": "One bar icon and a macOS-style dropdown: pick a keep-awake duration, and choose what happens to the screen when the lid closes.",
+    "category": "System",
+    "aliases": ["amphetamine", "keep-awake", "caffeine"],
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": {
+      "showRemaining": false
+    },
+    "schema": [
+      {
+        "key": "showRemaining",
+        "type": "boolean",
+        "label": "Show remaining time in the bar",
+        "defaultValue": false,
+        "description": "Draw the countdown next to the icon while a timed session is running."
+      }
+    ]
+  }
+}

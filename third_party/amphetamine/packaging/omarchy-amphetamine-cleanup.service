@@ -1,0 +1,13 @@
+[Unit]
+Description=Clean up Amphetamine when the graphical session ends
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/bin/true
+ExecStop=%h/.local/bin/amphetamine off
+
+[Install]
+WantedBy=graphical-session.target

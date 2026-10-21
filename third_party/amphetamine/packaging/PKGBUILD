@@ -1,0 +1,38 @@
+# Maintainer: Chase Cargill <https://github.com/ChaseC-130>
+#
+# Ready to submit to the AUR. After tagging a release, refresh the checksum:
+#   updpkgsums packaging/PKGBUILD
+# then test with `makepkg -si` before pushing to aur.archlinux.org.
+
+pkgname=amphetamine
+pkgver=2.0.1
+pkgrel=1
+pkgdesc="Keep Linux awake with the laptop lid closed, and power the internal display down while it is shut"
+arch=('any')
+url="https://github.com/ChaseC-130/amphetamine"
+license=('MIT')
+depends=('bash' 'jq' 'systemd')
+optdepends=(
+  'hyprland: power the internal display down on lid close'
+  'wlopm: display power control on non-Hyprland wlroots compositors'
+  'libnotify: desktop notifications when a session starts, ends, or expires'
+)
+provides=('omarchy-amphetamine')
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('22523e01055411385f895c5f85c4b4f7e1373e4bb50f0369b8cc728db9962d80')
+
+package() {
+  cd "$srcdir/$pkgname-$pkgver"
+
+  install -Dm755 bin/amphetamine "$pkgdir/usr/bin/amphetamine"
+  install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+  install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+
+  # The Omarchy bar widget. Omarchy loads plugins from the user's config dir
+  # and refuses symlinks inside a plugin folder, so this is staged for a copy
+  # rather than linked into place:
+  #   cp -r /usr/share/amphetamine/plugin ~/.config/omarchy/plugins/chase.amphetamine
+  install -Dm644 manifest.json "$pkgdir/usr/share/$pkgname/plugin/manifest.json"
+  install -Dm644 Amphetamine.qml "$pkgdir/usr/share/$pkgname/plugin/Amphetamine.qml"
+  install -Dm755 bin/amphetamine "$pkgdir/usr/share/$pkgname/plugin/bin/amphetamine"
+}
