@@ -9,12 +9,17 @@ python3 scripts/linux/battery-charge/install.py
 The installer prompts graphically through polkit to install a root-owned,
 fixed-purpose helper. It backs up the current user files under
 `~/.local/state/dotfiles/battery-charge/`, extends the user menu and adds a
-charge-cap control immediately after the existing battery widget. It preserves
+battery-care glyph beside the indicator group near the clock. It preserves
 other widgets, menu entries and shell settings; rerunning updates the same control.
-No Omarchy package files are patched.
+No Omarchy package files are patched. After updating the QML on a running desktop,
+use `omarchy-restart-shell` to clear its component cache.
 
-Click **80% cap** (or **100% cap**) in the bar, then choose **Home — 80%** or
-**Travel — 100%**. The active limit has a checkmark. Escape cancels the menu;
+In Home mode the battery-heart glyph is collapsed. Hover the bar's empty center
+or indicator group to reveal it alongside the other inactive indicators. In Travel
+mode it stays visible as a reminder. Click the glyph, then choose **Home — 80%**
+or **Travel — 100%**. The tooltip reports the current cap; no percentage label
+occupies the bar. Set `"alwaysShow": true` on its layout entry to keep it visible.
+The active limit has a checkmark. Escape cancels the menu;
 cancelling the authentication prompt leaves the limit unchanged. The control
 refreshes within five seconds. The same choices are searchable in the Omarchy
 menu under **Battery charge limit**.
@@ -26,7 +31,7 @@ runtime threshold. No reboot, service restart or forced discharge is needed.
 Above 80%, the Home setting stops further charging; ordinary use lowers the charge.
 
 This deliberately keeps the standard battery widget: Omarchy reserves its clicks
-for its power panel and battery-percentage toggle. The extra control inherits the
+for its power panel and battery-percentage toggle. The glyph inherits the
 bar's fonts, colors and interaction styles.
 
 To remove it, delete the `muness.battery-charge` entry from the shell's bar layout
