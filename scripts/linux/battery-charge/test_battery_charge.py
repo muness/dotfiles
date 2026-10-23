@@ -1,6 +1,7 @@
 import importlib.machinery
 import importlib.util
 import json
+import copy
 from pathlib import Path
 import subprocess
 import tempfile
@@ -83,6 +84,31 @@ class ChargeTests(unittest.TestCase):
              patch.object(client.subprocess, 'run', return_value=subprocess.CompletedProcess([], 126)) as run:
             self.assertEqual(client.main(), 126)
             run.assert_called_once_with(['/usr/bin/pkexec', '/usr/local/libexec/dotfiles-set-charge-limit', '100'])
+
+    def test_widget_moves_to_indicators_without_disturbing_other_entries(self):
+        layout = {'left': [{'id': 'menu'}], 'center': [], 'right': [
+            {'id': 'omarchy.indicators', 'alwaysShow': False}, {'id': 'omarchy.clock'},
+            {'id': 'omarchy.power', 'showPercentage': False},
+            {'id': 'muness.battery-charge', 'type': 'qml'}]}
+        before = copy.deepcopy(layout)
+        module = {'id': 'muness.battery-charge', 'type': 'qml'}
+        installer.place_widget(layout, module)
+        self.assertEqual(layout['right'][0], module)
+        self.assertEqual(layout['right'][1:], before['right'][:-1])
+        once = copy.deepcopy(layout)
+        installer.place_widget(layout, module)
+        self.assertEqual(layout, once)
+        self.assertEqual(layout['left'], before['left'])
+
+    def test_widget_placement_falls_back_to_clock_then_center(self):
+        module = {'id': 'muness.battery-charge', 'type': 'qml'}
+        layout = {'right': [{'id': 'omarchy.clock'}]}
+        installer.place_widget(layout, module)
+        self.assertEqual(layout['right'], [module, {'id': 'omarchy.clock'}])
+        layout = {'right': [{'id': 'omarchy.power'}]}
+        installer.place_widget(layout, module)
+        self.assertEqual(layout['center'], [module])
+        self.assertEqual(layout['right'], [{'id': 'omarchy.power'}])
 
     def test_menu_preserves_user_content_and_is_idempotent(self):
         for original in ('{}\n', '{\n // user notes\n "custom": {"label": "Custom"}\n}\n'):

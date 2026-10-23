@@ -38,6 +38,19 @@ def extend_menu(text, executable):
     return text[:position] + '\n' + block + text[position:]
 
 
+def place_widget(layout, module):
+    """Keep the cap in the indicator cluster, preserving all other bar entries."""
+    for section, rows in layout.items():
+        layout[section] = [row for row in rows if row.get('id') != module['id']]
+    for anchor in ('omarchy.indicators', 'omarchy.clock'):
+        for rows in layout.values():
+            for index, row in enumerate(rows):
+                if row.get('id') == anchor:
+                    rows.insert(index, module)
+                    return
+    layout.setdefault('center', []).insert(0, module)
+
+
 def main():
     home = Path.home()
     config = home / '.config/omarchy'
@@ -48,14 +61,7 @@ def main():
     layout = data['bar']['layout']
     widget = config / 'bar/modules/muness.battery-charge.qml'
     module = {'id': 'muness.battery-charge', 'type': 'qml'}
-    for section, rows in layout.items():
-        layout[section] = [row for row in rows if row.get('id') != module['id']]
-    location = next(((rows, i) for rows in layout.values() for i, row in enumerate(rows)
-                     if row.get('id') == 'omarchy.power'), None)
-    if location is None:
-        raise SystemExit('No Omarchy power widget found; preserving configuration')
-    rows, index = location
-    rows.insert(index + 1, module)
+    place_widget(layout, module)
     updated_menu = extend_menu(menu.read_text() if menu.exists() else '{}\n', executable)
     if not Path('/sys/class/power_supply/macsmc-battery/charge_control_end_threshold').exists():
         raise SystemExit('This integration requires the Apple Silicon battery driver')
