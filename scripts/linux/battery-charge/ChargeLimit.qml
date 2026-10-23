@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 import qs.Ui
 
@@ -25,13 +26,22 @@ BarIconButton {
   implicitHeight: vertical ? (revealed ? slotSize : 0) : barSize
   clip: true
   concealed: !revealed
-  interactive: revealed
+  interactive: revealed && !change.running
   dimmed: limit === "80"
 
-  tooltipText: limit
-    ? (limit === "80" ? "Home" : "Travel") + ": charge limit " + limit + "%\nClick to change Home / Travel"
+  tooltipText: change.running ? "Changing charge limit…" : limit
+    ? (limit === "80" ? "Home" : "Travel") + ": charge limit " + limit + "%\nClick for "
+      + (limit === "80" ? "Travel — 100%" : "Home — 80%")
     : "Battery charge limit unavailable"
-  onPressed: if (bar) bar.run("omarchy-menu summon battery-charge")
+  onPressed: function(button) {
+    if (button === Qt.LeftButton && limit && !change.running) change.running = true
+  }
+
+  Process {
+    id: change
+    command: [Quickshell.env("HOME") + "/.local/bin/battery-charge", "toggle"]
+    onExited: threshold.reload()
+  }
 
   FileView {
     id: threshold
