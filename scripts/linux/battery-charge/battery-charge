@@ -1,0 +1,39 @@
+#!/usr/bin/python3
+"""Show the battery cap in Omarchy's bar or change it with polkit."""
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+THRESHOLD = Path('/sys/class/power_supply/macsmc-battery/charge_control_end_threshold')
+
+
+def main():
+    action = sys.argv[1] if len(sys.argv) == 2 else ''
+    if action == 'status':
+        try:
+            limit = THRESHOLD.read_text().strip()
+            if limit not in ('80', '100'):
+                raise ValueError('Unsupported threshold')
+            mode = 'Home' if limit == '80' else 'Travel'
+            print(json.dumps({'text': f'{limit}% cap', 'tooltip': f'{mode}: charge limit {limit}%\nClick to change Home / Travel'}))
+        except (OSError, ValueError):
+            print(json.dumps({'text': 'Cap ?', 'tooltip': 'Battery charge limit unavailable'}))
+        return 0
+    if action not in ('80', '100'):
+        print('Usage: battery-charge status|80|100', file=sys.stderr)
+        return 2
+    result = subprocess.run(['/usr/bin/pkexec', '/usr/local/libexec/dotfiles-set-charge-limit', action])
+    if result.returncode in (126, 127):
+        # Cancelled or denied: do not retry or announce success.
+        return result.returncode
+    if result.returncode:
+        subprocess.run(['/usr/bin/notify-send', '-u', 'critical', 'Charge limit unchanged', 'Could not apply the charge limit. Try again from the battery menu.'])
+        return result.returncode
+    subprocess.run(['/usr/bin/notify-send', 'Battery charge limit', f'Set to {action}% (saved across restarts).'])
+    subprocess.run(['omarchy-menu', 'refresh'], check=False)
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())
