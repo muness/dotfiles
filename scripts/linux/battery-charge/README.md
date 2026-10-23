@@ -16,13 +16,14 @@ use `omarchy-restart-shell` to clear its component cache.
 
 In Home mode the battery-heart glyph is collapsed. Hover the bar's empty center
 or indicator group to reveal it alongside the other inactive indicators. In Travel
-mode it stays visible as a reminder. Click the glyph, then choose **Home — 80%**
-or **Travel — 100%**. The tooltip reports the current cap; no percentage label
-occupies the bar. Set `"alwaysShow": true` on its layout entry to keep it visible.
-The active limit has a checkmark. Escape cancels the menu;
-cancelling the authentication prompt leaves the limit unchanged. The control
-refreshes within five seconds. The same choices are searchable in the Omarchy
-menu under **Battery charge limit**.
+mode it stays visible as a reminder. Left-click the glyph to toggle directly
+between **Home — 80%** and **Travel — 100%**, without opening a menu. The tooltip
+reports the current cap and the next click's action. While authentication or the
+change is pending, further clicks are disabled. The system polkit authentication
+prompt can still appear; cancelling leaves the current cap unchanged. Set `"alwaysShow": true` on its layout entry to keep it visible.
+The glyph refreshes immediately after the change, and polls every five seconds
+for changes made elsewhere. Explicit Home/Travel choices remain searchable in
+the Omarchy menu under **Battery charge limit**, with the active limit checked.
 
 The helper updates `/etc/tlp.d/10-macbook-charge-limit.conf`, applies TLP and
 checks the hardware threshold. Both choices persist across restarts. On an apply

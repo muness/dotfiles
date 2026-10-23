@@ -85,6 +85,28 @@ class ChargeTests(unittest.TestCase):
             self.assertEqual(client.main(), 126)
             run.assert_called_once_with(['/usr/bin/pkexec', '/usr/local/libexec/dotfiles-set-charge-limit', '100'])
 
+    def test_toggle_chooses_opposite_hardware_limit(self):
+        for current, target in [('80', '100'), ('100', '80')]:
+            self.threshold.write_text(current)
+            with patch.object(client, 'THRESHOLD', self.threshold), \
+                 patch.object(client.sys, 'argv', ['battery-charge', 'toggle']), \
+                 patch.object(client.subprocess, 'run', return_value=subprocess.CompletedProcess([], 126)) as run:
+                self.assertEqual(client.main(), 126)
+                run.assert_called_once_with(['/usr/bin/pkexec', '/usr/local/libexec/dotfiles-set-charge-limit', target])
+
+    def test_toggle_unreadable_or_unsupported_limit_never_authenticates(self):
+        for value in ('99', None):
+            if value is None:
+                self.threshold.unlink()
+            else:
+                self.threshold.write_text(value)
+            with patch.object(client, 'THRESHOLD', self.threshold), \
+                 patch.object(client.sys, 'argv', ['battery-charge', 'toggle']), \
+                 patch.object(client.subprocess, 'run') as run:
+                self.assertEqual(client.main(), 1)
+                self.assertEqual(run.call_count, 1)
+                self.assertEqual(run.call_args.args[0][0], '/usr/bin/notify-send')
+
     def test_widget_moves_to_indicators_without_disturbing_other_entries(self):
         layout = {'left': [{'id': 'menu'}], 'center': [], 'right': [
             {'id': 'omarchy.indicators', 'alwaysShow': False}, {'id': 'omarchy.clock'},
