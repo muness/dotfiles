@@ -1,4 +1,7 @@
 [build]
+# Keep parallel linkers from exhausting workstation RAM. This is per Cargo
+# invocation; Linux's earlyoom service guards against combined build pressure.
+jobs = 2
 rustc-wrapper = "sccache"
 # Intermediates (dependencies, incremental state) go to this OS's
 # ~/.cargo/build/<hash of the workspace manifest path>; ./target keeps only
