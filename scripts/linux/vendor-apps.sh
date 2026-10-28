@@ -36,7 +36,7 @@ if [[ $mode == install || $mode == build ]]; then
   if [[ $mode == install ]]; then
     # A full upgrade precedes dependency installation: never refresh one package
     # against an older Arch system. These map the vendors' runtime requirements.
-    sudo pacman -Syu --needed --noconfirm base-devel libarchive python \
+    pkexec /usr/bin/pacman -Syu --needed --noconfirm base-devel libarchive python \
       alsa-lib at-spi2-core bash ca-certificates cairo curl dbus expat gcc-libs \
       gdk-pixbuf2 glib2 glibc gtk3 libcups libdrm libglvnd libnotify libusb \
       libx11 libxcb libxcomposite libxdamage libxext libxfixes libxkbcommon \
@@ -91,7 +91,7 @@ PY
     ((${#packages[@]} == 1)) && [[ -f ${packages[0]} ]] ||
       { echo "Expected one built $app package." >&2; exit 1; }
     if [[ $mode == install ]]; then
-      sudo pacman -U --noconfirm "${packages[0]}"
+      pkexec /usr/bin/pacman -U --noconfirm "${packages[0]}"
       pacman -Q "$package"
     else
       printf 'Built: %s\n' "${packages[0]}"

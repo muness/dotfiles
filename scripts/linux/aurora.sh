@@ -3,8 +3,8 @@
 # here or apply Arch packages to Fedora. Review release + checksum together.
 set -euo pipefail
 
-release=aurora-2026.10.13.18
-installer_sha256=f875b38a9c3e5946655b7542433cbcab6f6dd519d179f50421940f3236d701d3
+release=aurora-2026.10.17.20
+installer_sha256=0151f93666ec867d28cc6ada7edab3be96e6f70fa092e94c851cebc51cdb90d5
 url="https://github.com/omacom/linux-aurora/releases/download/$release/install-aurora-sep.sh"
 mode=${1:---read-only}
 case $mode in

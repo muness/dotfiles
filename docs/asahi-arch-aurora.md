@@ -5,10 +5,19 @@ fresh Arch ARM system, then use Aurora's published kernel, m1n1, device trees
 and libfprint together. COSMIC remains the desktop. Omarchy's Hyprland setup
 is optional; it is not needed to use the Aurora packages.
 
-As of 2026-10-14, the dotfiles wrapper pins
-[`aurora-2026.10.13.18`](https://github.com/omacom/linux-aurora/releases/tag/aurora-2026.10.13.18)
+As of 2026-10-22, the dotfiles wrapper pins
+[`aurora-2026.10.17.20`](https://github.com/omacom/linux-aurora/releases/tag/aurora-2026.10.17.20)
 and its installer checksum. Hardware profiles remain experimental. Package
 availability does not demonstrate reliable USB4 or Touch ID on J414C.
+
+The 2026-10-18 trial of `.20` was reverted after freezes and a subsequent login
+failure. The 2026-10-22 retry keeps the idle fabric governor disabled and makes
+the GRUB entry **Previous kernel - Aurora .18 (known working)** select the saved
+Aurora `.18` kernel and initramfs, rather than the older pre-Aurora kernel.
+The governor trial was followed by a suspected display freeze; its cause is
+unproven. Rollback packages, modules and the `.18` boot bundle remain preserved
+under `/var/lib/aurora-upgrade-20261018`; the module restoration service supports
+booting `.18` after an upgrade removes its installed module files.
 
 ## Keep Fedora during the trial
 
@@ -158,7 +167,8 @@ Update them separately from repository packages:
 ~/dotfiles/scripts/linux/vendor-apps.sh chrome  # update only Chrome
 ```
 
-The updater builds as your user, then uses sudo for pacman. Cached archives,
+The updater builds as your user, then uses pkexec for pacman with graphical
+polkit authentication. Cached archives,
 generated recipes and built packages live in
 `~/.cache/dotfiles/vendor-apps/`. The installed names are `google-chrome` and
 `openai-codex-desktop`; remove them with pacman normally. Upstream changes are
