@@ -69,6 +69,7 @@ stow_packages "${shared_packages[@]}" systemd tern-linux
 install_mise_tools
 bash "$dotfiles_dir/scripts/setup-cargo.sh"
 install_user_tools
+if declare -F install_caffeine_applet >/dev/null; then install_caffeine_applet; fi
 # Distro scripts may define extra steps that need rustup/mise first.
 if declare -F install_swamp >/dev/null; then install_swamp; fi
 if declare -F install_satty >/dev/null; then install_satty; fi

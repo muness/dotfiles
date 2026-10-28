@@ -14,7 +14,7 @@ arch_optional=(clang cmake ninja automake pkgconf openssl protobuf zig bats ansi
   smartmontools dfu-util qemu-system-aarch64 squashfs-tools xorriso android-tools
   ollama podman distrobox)
 arch_desktop=(cosmic-session cosmic-terminal cosmic-text-editor cosmic-store
-  flatpak networkmanager wl-clipboard noto-fonts-emoji jq)
+  flatpak networkmanager wl-clipboard noto-fonts-emoji jq bluez bluez-utils bluez-obex)
 arch_desktop_optional=(keepassxc syncthing chromium vlc satty openssh-askpass)
 
 # Pacman has no --skip-unavailable. Resolve optional packages from the synced
@@ -55,6 +55,7 @@ install_system_packages() {
   sudo systemctl set-default graphical.target
   configure_tailscale_tray
   install_desktop_flatpaks
+  bash "$dotfiles_dir/scripts/linux/tether.sh"
   bash "$dotfiles_dir/scripts/linux/1password.sh"
   bash "$dotfiles_dir/scripts/linux/vendor-apps.sh"
   if command -v syncthing >/dev/null 2>&1; then

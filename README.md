@@ -44,7 +44,7 @@ and builds local pacman packages, so no AUR helper or Debian/RPM tools are neede
 
 | | macOS (`mac`) | Apple Silicon Linux (`asahi`) | Server (`server`) |
 |---|---|---|---|
-| System packages | `Brewfile` (formulae and casks) | dnf or pacman; flatpak (Zed, Obsidian, Vesktop, Caffeine Applet); Vicinae; native Chrome/ChatGPT (vendor RPMs on Fedora, locally repackaged vendor binaries on Arch) | dnf, pacman, or apt |
+| System packages | `Brewfile` (formulae and casks) | dnf or pacman; flatpak (Zed, Obsidian, Vesktop); native Caffeine COSMIC applet and Vicinae; native Chrome/ChatGPT (vendor RPMs on Fedora, locally repackaged vendor binaries on Arch) | dnf, pacman, or apt |
 | CLI tools and runtimes | mise | mise | mise |
 | Desktop and windows | yabai, skhd, borders, Raycast | COSMIC and its tiling | none |
 | Screenshots | built-in tools; `shot-share` for links | `shot-annotate` (cosmic-screenshot into Satty); `shot-share` | none |
@@ -114,14 +114,30 @@ installs COSMIC, Chromium, KeePassXC, Syncthing, VLC, the 1Password app, the
 ChatGPT desktop app and the flatpaks. swamp and Satty are built from source
 because neither ships an aarch64 Linux release.
 
-The Fedora desktop setup adds the Caffeine applet to the COSMIC panel and
-enables Tailscale's Linux systray in COSMIC's Status Area. Log out and back in
-after the first setup to refresh the panel. Then run `sudo tailscale up` once to
-connect this machine to the Fleet tailnet.
+The Linux desktop setup builds the Caffeine COSMIC applet from the pinned
+upstream source in `third_party/caffeine-applet/` and adds it to the panel. Its
+popup shows a live countdown on the selected duration. Configure presets in
+`~/.config/cosmic/com.github.codevardhan.caffeine-applet/v1/settings`.
+The optional **Keep awake with lid closed** switch is hidden unless
+`dangerous_enable_closed_lid_control: true` is set there; it always starts off.
+Use `default_duration_minutes: Some(25)` for a 25-minute left-click session,
+or `None` for indefinite. Reopen the popup after editing config to reload it.
+Log out and back in after install or updates to refresh the panel. The setup
+also enables Tailscale's Linux systray in COSMIC's Status Area; run
+`sudo tailscale up` once to connect this machine to the Fleet tailnet.
 
 Vicinae is installed for desktop profiles on Fedora and Arch Linux, and its
 user service starts at login. Invoke it with `vicinae toggle`; add that command
 as a custom shortcut in COSMIC Settings → Keyboard if you want a launcher key.
+
+On Arch desktop installs, Tether is installed from a checksum-pinned upstream
+AppImage, with its user service enabled and BlueZ's OBEX package installed.
+To install or update it separately, run `bash ~/dotfiles/scripts/linux/tether.sh`.
+Before Bluetooth pairing, run the installed AppImage with `--bt-setup` and
+review its system-wide Bluetooth changes; the installer does not apply them.
+Pair the iPhone in Tether's Devices view and enable message notifications and
+contact sync in its Bluetooth settings. Wi-Fi clipboard and file transfer
+require the Tether iPhone app in the foreground.
 
 ## macOS quick start
 
@@ -145,6 +161,10 @@ brew services start borders
 For yabai to control windows across all spaces, you need to [partially disable System Integrity Protection](https://github.com/koekeishiya/yabai/wiki/Disabling-System-Integrity-Protection). This is safe but requires a reboot.
 
 ## Rust builds (both OSes)
+
+Cargo defaults to two parallel jobs to limit linker memory use. This is per
+invocation; see [Linux memory protection](docs/linux-memory-guard.md) for the
+Arch ARM workstation's compressed swap and early memory-pressure guard.
 
 `cargo/.cargo/config.toml` sets `build.build-dir` to
 `{cargo-cache-home}/build/{workspace-path-hash}`: intermediates go to

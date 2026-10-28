@@ -18,7 +18,6 @@ configure_tailscale_tray() {
 install_desktop_flatpaks() {
   flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
   flatpak install --user -y --noninteractive flathub "${desktop_flatpaks[@]}"
-  install_caffeine_applet
   install_vicinae
 }
 
@@ -41,10 +40,40 @@ install_vicinae() {
     echo 'warning: enable vicinae.service after logging into the desktop session' >&2
 }
 
-# Install the native COSMIC applet and add it to the panel's right wing.
-install_caffeine_applet() {
-  flatpak remote-add --user --if-not-exists cosmic https://apt.pop-os.org/cosmic/cosmic.flatpakrepo
-  flatpak install --user -y --noninteractive cosmic "$caffeine_applet_id"
+# Build the customized COSMIC Caffeine applet and add it to the panel's right
+# wing. Keep the upstream app ID so existing panel settings continue to work.
+install_caffeine_applet() (
+  set -euo pipefail
+  [[ ${SKIP_DESKTOP:-} == 1 ]] && return 0
+  local applet_dir="$dotfiles_dir/third_party/caffeine-applet"
+  local applet_bin="$HOME/.local/bin/caffeine-applet"
+  local applications_dir="$HOME/.local/share/applications"
+  local icons_dir="$HOME/.local/share/icons/hicolor/scalable/apps"
+  local desktop_file="$applications_dir/$caffeine_applet_id.desktop"
+
+  cargo build --manifest-path "$applet_dir/Cargo.toml" --release --locked
+  install -Dm0755 "$applet_dir/target/release/caffeine-applet" "$applet_bin.new"
+  mv -- "$applet_bin.new" "$applet_bin"
+  mkdir -p "$applications_dir" "$icons_dir"
+  python3 - "$applet_dir/resources/app.desktop" "$desktop_file" "$applet_bin" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+source, target, executable = map(Path, sys.argv[1:])
+desktop = source.read_text()
+quoted_exec = '"' + str(executable).replace("\\", "\\\\").replace('"', '\\"') + '"'
+desktop, count = re.subn(r"(?m)^Exec=.*$", f"Exec={quoted_exec}", desktop, count=1)
+if count != 1:
+    raise SystemExit("Could not set the Caffeine applet command")
+target.write_text(desktop)
+PY
+  install -Dm0644 "$applet_dir/resources/icons/hicolor/scalable/apps/coffee-full.svg" \
+    "$icons_dir/$caffeine_applet_id.svg"
+  install -Dm0644 "$applet_dir/resources/icons/hicolor/scalable/apps/coffee-full.svg" \
+    "$icons_dir/$caffeine_applet_id.On.svg"
+  install -Dm0644 "$applet_dir/resources/icons/hicolor/scalable/apps/coffee-empty.svg" \
+    "$icons_dir/$caffeine_applet_id.Off.svg"
 
   local panel_config="$HOME/.config/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings"
   local default_panel_config=/usr/share/cosmic/com.system76.CosmicPanel.Panel/v1/plugins_wings
@@ -76,8 +105,8 @@ if applet_id not in config:
         raise SystemExit("Could not find COSMIC Status Area in panel config")
     path.write_text(config)
 PY
-  echo "Caffeine added to the COSMIC panel; log out and back in to refresh the panel."
-}
+  echo "Customized Caffeine applet installed; log out and back in to refresh the COSMIC panel."
+)
 
 # swamp ships no aarch64 Linux release; build it once rustup exists.
 install_swamp() {
