@@ -1,0 +1,20 @@
+pkgname=omarchy-desktop-cosmic
+pkgver=4.0.3rc4
+pkgrel=2
+pkgdesc='Pinned Omarchy Mac desktop alongside COSMIC, without system provisioning'
+arch=('aarch64')
+url='https://github.com/omacom/omarchy-mac'
+license=('MIT')
+conflicts=('omarchy' 'omarchy-dev' 'omarchy-settings' 'omarchy-settings-dev')
+depends=('hyprland' 'quickshell' 'uwsm' 'gum' 'jq' 'perl' 'foot'
+         'qt6-wayland' 'qt6-multimedia' 'qt6-imageformats' 'xdg-desktop-portal-hyprland'
+         'xdg-desktop-portal-gtk' 'xdg-terminal-exec' 'wireplumber'
+         'wl-clipboard' 'brightnessctl' 'udiskie' 'hyprpicker' 'hyprsunset'
+         'socat' 'inotify-tools' 'ttf-jetbrains-mono-nerd' 'woff2-font-awesome'
+         'python' 'python-dbus' 'bluez-tools' 'fprintd' 'grim' 'slurp' 'wf-recorder')
+source=()
+sha256sums=()
+
+package() {
+  python3 "$OMARCHY_DESKTOP_RECIPE/prepare.py" "$OMARCHY_DESKTOP_SOURCE" "$pkgdir"
+}
