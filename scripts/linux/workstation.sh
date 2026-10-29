@@ -82,8 +82,10 @@ if count != 1:
     raise SystemExit("Could not set the Caffeine applet command")
 target.write_text(desktop)
 PY
-  install -Dm0644 "$applet_dir/resources/icons/hicolor/scalable/apps/coffee-full.svg" \
+  install -Dm0644 "$applet_dir/resources/icons/hicolor/scalable/apps/icon.svg" \
     "$icons_dir/$caffeine_applet_id.svg"
+  install -Dm0644 "$applet_dir/resources/icons/hicolor/scalable/apps/coffee-symbolic.svg" \
+    "$icons_dir/$caffeine_applet_id-symbolic.svg"
   install -Dm0644 "$applet_dir/resources/icons/hicolor/scalable/apps/coffee-full.svg" \
     "$icons_dir/$caffeine_applet_id.On.svg"
   install -Dm0644 "$applet_dir/resources/icons/hicolor/scalable/apps/coffee-empty.svg" \

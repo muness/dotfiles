@@ -1,7 +1,7 @@
 {
     "id": "com.github.codevardhan.caffeine-applet",
     "runtime": "org.freedesktop.Platform",
-    "runtime-version": "24.08",
+    "runtime-version": "25.08",
     "sdk": "org.freedesktop.Sdk",
     "sdk-extensions": [
         "org.freedesktop.Sdk.Extension.rust-stable"
@@ -13,6 +13,9 @@
         "--socket=wayland",
         "--share=ipc",
         "--device=dri",
+        "--filesystem=xdg-config/cosmic:rw",
+        "--talk-name=com.system76.CosmicSettingsDaemon",
+        "--talk-name=org.freedesktop.ScreenSaver",
         "--system-talk-name=org.freedesktop.login1"
     ],
     "modules": [
@@ -32,14 +35,23 @@
                 "install -Dm0755 target/release/caffeine-applet ${FLATPAK_DEST}/bin/caffeine-applet",
                 "install -Dm0644 resources/app.desktop ${FLATPAK_DEST}/share/applications/com.github.codevardhan.caffeine-applet.desktop",
                 "install -Dm0644 resources/app.metainfo.xml ${FLATPAK_DEST}/share/metainfo/com.github.codevardhan.caffeine-applet.metainfo.xml",
-                "install -Dm0644 resources/icons/hicolor/scalable/apps/coffee-full.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/com.github.codevardhan.caffeine-applet.svg",
+                "install -Dm0644 resources/icons/hicolor/scalable/apps/icon.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/com.github.codevardhan.caffeine-applet.svg",
                 "install -Dm0644 resources/icons/hicolor/scalable/apps/coffee-full.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/com.github.codevardhan.caffeine-applet.On.svg",
-                "install -Dm0644 resources/icons/hicolor/scalable/apps/coffee-empty.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/com.github.codevardhan.caffeine-applet.Off.svg"
+                "install -Dm0644 resources/icons/hicolor/scalable/apps/coffee-empty.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/com.github.codevardhan.caffeine-applet.Off.svg",
+                "install -Dm0644 resources/icons/hicolor/scalable/apps/coffee-symbolic.svg ${FLATPAK_DEST}/share/icons/hicolor/scalable/apps/com.github.codevardhan.caffeine-applet-symbolic.svg"
             ],
             "sources": [
                 {
                     "type": "dir",
-                    "path": "."
+                    "path": ".",
+                    "skip": [
+                        ".flatpak-builder",
+                        ".git",
+                        ".venv",
+                        "builddir",
+                        "repo",
+                        "target"
+                    ]
                 },
                 "flatpak/cargo-sources.json"
             ]

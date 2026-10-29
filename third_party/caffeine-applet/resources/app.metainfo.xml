@@ -2,21 +2,10 @@
 <component type="desktop-application">
   <id>com.github.codevardhan.caffeine-applet</id>
   <metadata_license>CC0-1.0</metadata_license>
-  <project_license>MPL-2.0</project_license>
-  <name>Caffeine Applet</name>
-  <summary>Keep your system awake on demand</summary>
-
-  <description>
-    <p>
-      A simple COSMIC panel applet that prevents your system from going idle.
-      Click the coffee icon to toggle an inhibit lock that blocks idle and sleep,
-      keeping your screen on and your machine awake.
-    </p>
-    <p>
-      Uses the logind D-Bus interface, so it works on any system running
-      systemd-logind or elogind. Minimal resource usage with no background processes.
-    </p>
-  </description>
+  <project_license>MIT</project_license>
+  <project_group>COSMIC</project_group>
+  <developer_name>Harshavardhan Manohar</developer_name>
+  <update_contact>harsha7vardhan@gmail.com</update_contact>
 
   <developer id="com.github.codevardhan">
     <name>Harshavardhan Manohar</name>
@@ -24,7 +13,33 @@
 
   <url type="homepage">https://github.com/codevardhan/caffeine-applet</url>
   <url type="bugtracker">https://github.com/codevardhan/caffeine-applet/issues</url>
+  <url type="help">https://github.com/codevardhan/caffeine-applet#readme</url>
   <url type="vcs-browser">https://github.com/codevardhan/caffeine-applet</url>
+
+  <name>Caffeine Applet</name>
+  <summary>Keep your system awake on demand</summary>
+  <description>
+    <p>
+      A COSMIC panel applet that stops your system from going idle or going to sleep.
+      Left-click the coffee cup to start or end a keep-awake session; right-click to
+      choose how long it should last.
+    </p>
+    <p>
+      Sessions run indefinitely or for a set time. Timed sessions show a live countdown
+      in the popup and release the lock on their own when time is up, so there is nothing
+      to remember to switch off. The duration presets, and the duration that left-click
+      starts, are configurable through a self-documenting settings file.
+    </p>
+    <p>
+      An optional, opt-in switch keeps the system awake with the laptop lid closed. It is
+      hidden by default, never activates on its own, and resets to off on every launch.
+    </p>
+    <p>
+      Uses the logind D-Bus Inhibit interface directly. The lock is file-descriptor based,
+      so the OS releases it automatically if the applet ever stops. No child processes, no
+      polling, near-zero resource usage. Works with systemd-logind or elogind.
+    </p>
+  </description>
 
   <launchable type="desktop-id">com.github.codevardhan.caffeine-applet.desktop</launchable>
 
@@ -37,21 +52,71 @@
     <category>COSMIC</category>
   </categories>
 
+  <screenshots>
+    <screenshot type="default">
+      <image>
+        https://raw.githubusercontent.com/codevardhan/caffeine-applet/main/screenshots/screenshot_on.png</image>
+      <caption>An indefinite keep-awake session running, with the option to end it</caption>
+    </screenshot>
+
+    <screenshot>
+      <image>
+        https://raw.githubusercontent.com/codevardhan/caffeine-applet/main/screenshots/screenshot_off.png</image>
+      <caption>Caffeine Applet inactive in the COSMIC panel</caption>
+    </screenshot>
+
+    <screenshot>
+      <image>
+        https://raw.githubusercontent.com/codevardhan/caffeine-applet/main/screenshots/screenshot_dark.png</image>
+      <caption>Caffeine Applet on the COSMIC panel, dark theme</caption>
+    </screenshot>
+
+    <screenshot>
+      <image>
+        https://raw.githubusercontent.com/codevardhan/caffeine-applet/main/screenshots/screenshot_light.png</image>
+      <caption>Caffeine Applet on the COSMIC panel, light theme</caption>
+    </screenshot>
+  </screenshots>
+
+  <content_rating type="oars-1.1" />
+
+
   <releases>
+    <release version="0.1.3" date="2026-10-28">
+      <description>
+        <p>Sessions now keep the screen on, and the Flatpak build follows your COSMIC theme.</p>
+        <ul>
+          <li>Fixed the screen still blanking during a Caffeine session on COSMIC: the session held only a logind inhibitor, which cosmic-idle does not read.</li>
+          <li>Redrew the panel icon so an active session is obvious at a glance: idle is now a hollow cup, active a solid cup with steam. The two states were previously almost indistinguishable.</li>
+          <li>Fixed the popup ignoring the system theme: it had no access to the COSMIC theme configuration and fell back to built-in defaults.</li>
+          <li>Corner radii, panel and popup colours, and the frosted glass effect now match the rest of the desktop.</li>
+          <li>The applet now picks up theme changes live, without a restart.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.2" date="2026-10-16">
+      <description>
+        <p>Timed sessions, configurable durations, and an optional closed-lid switch.</p>
+        <ul>
+          <li>Right-click the panel icon to keep the system awake for a set time, with a live countdown in the popup.</li>
+          <li>Timed sessions end on their own and release the lock automatically.</li>
+          <li>Duration presets, and the duration started by left-click, are configurable in a commented settings file.</li>
+          <li>New opt-in switch to keep the system awake with the laptop lid closed, hidden by default.</li>
+          <li>Reworked popup, grouped into sections and using the native COSMIC applet styling.</li>
+          <li>Fixed a missing symbolic panel icon in Flatpak builds.</li>
+          <li>Fixed broken screenshot links in the software-store listing.</li>
+        </ul>
+      </description>
+    </release>
+    <release version="0.1.1" date="2026-09-23">
+      <description>
+        <p>Maintenance release</p>
+      </description>
+    </release>
     <release version="0.1.0" date="2025-03-19">
       <description>
         <p>Initial release</p>
       </description>
     </release>
   </releases>
-
-  <screenshots>
-    <screenshot type="default">
-      <image>
-        https://raw.githubusercontent.com/codevardhan/caffeine-applet/main/screenshots/screenshot_on.png</image>
-      <caption>Caffeine Applet active in the COSMIC panel</caption>
-    </screenshot>
-  </screenshots>
-
-  <content_rating type="oars-1.1" />
 </component>

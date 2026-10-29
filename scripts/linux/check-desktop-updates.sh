@@ -17,9 +17,14 @@ else
   echo 'Could not compare Omarchy Mac revisions.' >&2
   status=1
 fi
-for item in 'binder|https://github.com/choff/anbox-modules.git|3f65f66a87b2323e56bd0d68993524d034d8b720' \
-            'caffeine|https://github.com/codevardhan/caffeine-applet.git|18d59ee4d62eca1bc63f0513e05992fbb9e6f041'; do
+binder_base=$(sed -n 's/^_commit=\([0-9a-f]*\)$/\1/p' "$here/waydroid/PKGBUILD")
+# Backticks are literal Markdown delimiters in the vendored README.
+# shellcheck disable=SC2016
+caffeine_base=$(sed -n 's/.*tracks upstream commit `\([0-9a-f]*\)`.*/\1/p' "$here/../../third_party/caffeine-applet/README.md")
+for item in "binder|https://github.com/choff/anbox-modules.git|$binder_base" \
+            "caffeine|https://github.com/codevardhan/caffeine-applet.git|$caffeine_base"; do
   IFS='|' read -r name url reviewed <<<"$item"
+  [[ $reviewed =~ ^[0-9a-f]{40}$ ]] || { echo "Invalid $name source revision." >&2; status=1; continue; }
   remote=$(git ls-remote "$url" HEAD) || { status=1; continue; }
   remote=${remote%%$'\t'*}
   [[ $remote =~ ^[0-9a-f]{40}$ ]] || { status=1; continue; }

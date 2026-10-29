@@ -43,8 +43,8 @@ an error notification. It does not disable the service at boot.
 The kernel requires Binder; this Aurora build did not enable it. The included
 DKMS recipe derives from [binder_linux-dkms in AUR](https://aur.archlinux.org/packages/binder_linux-dkms)
 7.1-3, using [choff/anbox-modules](https://github.com/choff/anbox-modules)
-commit `3f65f66a87b2323e56bd0d68993524d034d8b720` and PR 29's compatibility patch.
-Both source hashes are checked by makepkg. Review and update the recipe if a
+commit `4d68f90e11992601e8072bcbf6dcd6ca603364a9`. The former PR 29 compatibility
+patch is incorporated upstream. The archive hash is checked by makepkg. Review and update the recipe if a
 future kernel requires changes. Builds use matching kernel headers and `lld`;
 without `lld`, compilation finishes but linking fails with `ld.lld: command not
 found`. Package hooks may warn about a failed DKMS build without failing pacman,

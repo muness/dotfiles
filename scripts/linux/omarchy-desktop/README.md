@@ -4,6 +4,10 @@ This local package uses Omarchy Mac commit `ba546a61f881c1fe9d79d75ec050eab048b8
 
 It omits upstream system provisioning, migrations, pacman hooks, global environment changes, boot configuration and `/etc/skel` seeding. Most upstream system-management commands remain disabled. The menu offers monitor, keybinding and input configuration, plus Arch package installation and a full system package update using pacman and graphical polkit authentication. Read-only package and disk queries are also available. These controls do not run Omarchy migrations or manage Aurora's boot stack. Themes affect the Omarchy desktop and Foot, rather than browser/editor/COSMIC preferences. The microphone remapping is omitted.
 
+The standard `omarchy` command router is available, including `omarchy plugin
+add`, `list`, `enable`, `disable`, `update` and `remove`. It routes to the same
+installed helpers; the restricted system-management helpers remain disabled.
+
 The local package also renames the theme singleton to `ThemeColor`: Qt 6.12's built-in `QtQuick.Color` otherwise shadows the original `Color` singleton and leaves the shell unthemed. It includes `qt6-imageformats` for the shipped WebP backgrounds. Omarchy autostart explicitly finalizes UWSM before starting session services.
 
 ## Build and install

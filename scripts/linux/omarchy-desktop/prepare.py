@@ -56,6 +56,19 @@ def main(source, destination):
         if admin.match(command.name) or '# omarchy:requires-sudo=true' in text or re.search(r'\b(?:sudo|pkexec)\b', text):
             disabled.append(command.name)
             script(command.name, '# omarchy:summary=Unavailable in this desktop-only installation\nprintf "%s\\n" "This desktop is managed by dotfiles; use its reviewed installer for system changes." >&2\nexit 1')
+    # The command router only dispatches to the installed helpers. Restore it
+    # so standard commands such as `omarchy plugin add` work; management
+    # helpers disabled above remain disabled when reached through the router.
+    shutil.copy2(source / 'bin' / 'omarchy', runtime / 'bin' / 'omarchy')
+    (runtime / 'bin' / 'omarchy').chmod(0o755)
+    if 'omarchy' in disabled:
+        disabled.remove('omarchy')
+    logo = runtime / 'bin/omarchy-show-logo'
+    logo_text = logo.read_text()
+    old = 'cat <$OMARCHY_PATH/logo.txt'
+    if old not in logo_text:
+        raise SystemExit('Omarchy logo helper changed; review required')
+    logo.write_text(logo_text.replace(old, 'cat "${OMARCHY_PATH:-/usr/share/omarchy}/logo.txt"'))
     write(runtime / 'desktop-disabled-commands.txt', '\n'.join(sorted(disabled)) + '\n')
     write(runtime / 'desktop-source-revision', REVISION + '\n')
 
@@ -112,6 +125,13 @@ end)
   "setup.monitors": {"label":"Monitors","action":"omarchy-launch-config-editor \\"$HOME/.config/hypr/monitors.lua\\""},
   "setup.keybindings": {"label":"Keybindings","action":"omarchy-launch-config-editor \\"$HOME/.config/hypr/bindings.lua\\""},
   "setup.input": {"label":"Input","action":"omarchy-launch-config-editor \\"$HOME/.config/hypr/input.lua\\""},
+  "setup.plugin": {"icon":"󰐱","label":"Plugins","aliases":["plugin","plugins"]},
+  "setup.plugin.enable": {"label":"Enable Plugin","action":"omarchy-menu-plugin enable"},
+  "setup.plugin.disable": {"label":"Disable Plugin","action":"omarchy-menu-plugin disable"},
+  "setup.plugin.add": {"label":"Browse Plugins","action":"omarchy-shell shell summon io.github.ilyazar.plugin-control '{}'"},
+  "setup.plugin.add-git": {"label":"Add from Git URL","action":"omarchy-launch-floating-terminal-with-presentation omarchy-plugin-add"},
+  "setup.plugin.clone": {"label":"Clone Plugin","action":"omarchy-menu-plugin clone"},
+  "setup.plugin.remove": {"label":"Remove Plugin","action":"omarchy-menu-plugin remove"},
   "install": {"icon":"󰉉","label":"Install"},
   "install.package": {"label":"Arch Package","action":"omarchy-launch-floating-terminal-with-presentation omarchy-desktop-package-install"},
   "update": {"icon":"","label":"Update"},

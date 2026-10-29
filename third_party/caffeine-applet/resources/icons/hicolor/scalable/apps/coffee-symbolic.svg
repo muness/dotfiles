@@ -1,0 +1,28 @@
+<svg width="16" height="16" viewBox="0 0 16 16" fill="none"
+    xmlns="http://www.w3.org/2000/svg">
+    <g id="applet-coffee-symbolic">
+        <!-- Steam. stroke-width 1.5 in a 16-unit viewBox is ~1.9px at the default
+             20px panel size, so it survives rasterization as a real mark. The
+             previous art used 0.45 inside a 0.55 transform in a 5.9-unit viewBox,
+             which came out at 0.84px and antialiased away into a smudge.
+             Two strokes, not three: at 1.5 wide with a 3.5 pitch the gap is 2
+             units, which still resolves at 16px. Three would pitch at 2.5 and
+             blur into a single blob at the smallest panel size. -->
+        <g stroke="#232323" stroke-width="1.5" fill="none" stroke-linecap="round">
+            <path d="M 4.35 4.5 L 5.15 2.1" />
+            <path d="M 7.85 4.5 L 8.65 2.1" />
+        </g>
+
+        <!-- Cup body, solid. Outer edge x 2..11, y 6..14, matching the outer edge
+             the "off" icon's stroke paints, so the two read as the same object. -->
+        <path d="M 2 6 L 11 6 L 11 12
+                 A 2 2 0 0 1 9 14
+                 L 4 14
+                 A 2 2 0 0 1 2 12 Z"
+            fill="#232323" />
+
+        <!-- Handle. Identical geometry to the "off" icon. -->
+        <path d="M 10.25 8 A 2 2 0 1 1 10.25 11.5"
+            fill="none" stroke="#232323" stroke-width="1.5" />
+    </g>
+</svg>

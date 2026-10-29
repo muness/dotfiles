@@ -1,8 +1,8 @@
 [package]
 name = "caffeine-applet"
-version = "0.1.0"
+version = "0.1.3"
 edition = "2021"
-license = "MPL-2.0"
+license = "MIT"
 description = "A simple COSMIC applet that prevents your system from going idle by creating a systemd-inhibit lock session."
 repository = "https://github.com/codevardhan/caffeine-applet"
 
@@ -19,6 +19,9 @@ features = ["fluent-system", "desktop-requester"]
 
 [dependencies.libcosmic]
 git = "https://github.com/pop-os/libcosmic"
+# Deliberately unpinned. `cosmic-panel` depends on libcosmic without a rev, so a
+# `rev =` here splits the graph into two libcosmic sources, which the Flatpak
+# cargo vendoring cannot express. Cargo.lock still pins the exact commit.
 default-features = false
 features = ["applet", "tokio", "wayland"]
 

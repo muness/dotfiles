@@ -40,7 +40,10 @@ kernel=$(uname -r)
 
 echo 'Installing packages; graphical authentication may be requested.'
 "${elevate[@]}" /usr/bin/pacman -S --needed --noconfirm waydroid dkms lld base-devel curl libnotify desktop-file-utils
-if ! modinfo binder_linux >/dev/null 2>&1; then
+installed_binder=$(pacman -Q binder_linux-dkms 2>/dev/null | awk '{print $2}') || installed_binder=
+recipe_binder=$(bash -c 'source "$1"; printf "%s-%s" "$pkgver" "$pkgrel"' _ "$here/waydroid/PKGBUILD")
+if ! modinfo binder_linux >/dev/null 2>&1 ||
+   { [[ -n $installed_binder ]] && (( $(vercmp "$installed_binder" "$recipe_binder") < 0 )); }; then
   cache=${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/waydroid
   mkdir -p "$cache/binder"
   cp "$here/waydroid/PKGBUILD" "$cache/binder/PKGBUILD"

@@ -1,13 +1,16 @@
+use std::borrow::Cow;
 use std::os::fd::OwnedFd;
 use std::time::{Duration, Instant};
 
 use crate::config::{Settings, SettingsStore};
 use cosmic::app::Core;
+use cosmic::cosmic_theme::Spacing;
+use cosmic::iced::platform_specific::shell::wayland::commands::popup::{destroy_popup, get_popup};
 use cosmic::iced::window::Id;
 use cosmic::iced::{Subscription, Task};
-use cosmic::surface::action::{app_popup, destroy_popup};
-use cosmic::widget::{list_column, mouse_area, settings, text, toggler};
+use cosmic::widget::{divider, mouse_area, settings, text, toggler, Column};
 use cosmic::Element;
+use zbus::blocking::connection::Builder as ConnectionBuilder;
 use zbus::blocking::Connection;
 use zbus::zvariant::OwnedFd as ZbusFd;
 
@@ -49,6 +52,11 @@ fn countdown(deadline: Instant, now: Instant) -> String {
     format!("{minutes} min")
 }
 
+/// Inline diagnostic text, padded to line up with the rows above it.
+fn error_row<'a>(message: impl Into<Cow<'a, str>> + 'a) -> Element<'a, Message> {
+    cosmic::applet::padded_control(text::body(message)).into()
+}
+
 #[derive(Default)]
 pub struct CaffeineApplet {
     core: Core,
@@ -57,6 +65,8 @@ pub struct CaffeineApplet {
     config_error: Option<String>,
     popup: Option<Id>,
     inhibit_fd: Option<OwnedFd>,
+    screensaver_inhibit: Option<ScreenSaverInhibit>,
+    inhibit_error: Option<String>,
     lid_inhibit_fd: Option<OwnedFd>,
     lid_inhibit_error: Option<String>,
     active_choice: Option<CaffeineDuration>,
@@ -119,6 +129,76 @@ fn acquire_lid_inhibit() -> Result<OwnedFd, Box<dyn std::error::Error>> {
     Ok(reply.into())
 }
 
+const SCREENSAVER_NAME: &str = "org.freedesktop.ScreenSaver";
+/// cosmic-idle serves the interface at both paths; other desktops serve one.
+const SCREENSAVER_PATHS: [&str; 2] = ["/org/freedesktop/ScreenSaver", "/ScreenSaver"];
+/// zbus defaults to *no* method timeout, and these calls run on the UI thread,
+/// so a wedged screensaver service would otherwise hang the whole panel.
+const SCREENSAVER_TIMEOUT: Duration = Duration::from_secs(5);
+
+/// A live `org.freedesktop.ScreenSaver` inhibit.
+///
+/// Owns its bus connection on purpose: cosmic-idle watches `NameOwnerChanged`
+/// and discards every inhibitor belonging to a unique bus name that disappears,
+/// so closing this connection releases the inhibit even if `UnInhibit` fails or
+/// we are killed before `Drop` runs. Deliberately not `Clone` — a clone's drop
+/// would retire a cookie the original still believes it holds.
+#[derive(Debug)]
+struct ScreenSaverInhibit {
+    conn: Connection,
+    cookie: u32,
+    /// Whichever of `SCREENSAVER_PATHS` answered, so `UnInhibit` goes back to
+    /// the same object.
+    path: &'static str,
+}
+
+impl Drop for ScreenSaverInhibit {
+    fn drop(&mut self) {
+        // Best effort: `conn` is dropped immediately after this returns and the
+        // resulting disconnect releases the inhibit anyway.
+        if let Err(err) = self.conn.call_method(
+            Some(SCREENSAVER_NAME),
+            self.path,
+            Some(SCREENSAVER_NAME),
+            "UnInhibit",
+            &(self.cookie,),
+        ) {
+            eprintln!(
+                "Failed to release the screensaver inhibit (closing the bus connection instead): {err}"
+            );
+        }
+    }
+}
+
+/// Ask the session's screensaver service to suppress blanking, locking and sleep.
+///
+/// On COSMIC this is the call that actually does the work: cosmic-idle knows
+/// nothing about logind inhibitors, but one screensaver inhibit makes it tear
+/// down the idle timers behind screen-off, auto-lock and auto-suspend alike.
+fn acquire_screensaver_inhibit() -> Result<ScreenSaverInhibit, Box<dyn std::error::Error>> {
+    let conn = ConnectionBuilder::session()?
+        .method_timeout(SCREENSAVER_TIMEOUT)
+        .build()?;
+
+    let mut last_err = None;
+    for path in SCREENSAVER_PATHS {
+        match conn.call_method(
+            Some(SCREENSAVER_NAME),
+            path,
+            Some(SCREENSAVER_NAME),
+            "Inhibit",
+            &("Caffeine Applet", "Caffeine session active"),
+        ) {
+            Ok(reply) => {
+                let cookie: u32 = reply.body().deserialize()?;
+                return Ok(ScreenSaverInhibit { conn, cookie, path });
+            }
+            Err(err) => last_err = Some(err),
+        }
+    }
+    Err(last_err.expect("SCREENSAVER_PATHS is never empty").into())
+}
+
 impl cosmic::Application for CaffeineApplet {
     type Executor = cosmic::SingleThreadExecutor;
     type Flags = ();
@@ -167,31 +247,17 @@ impl cosmic::Application for CaffeineApplet {
                     self.reload_settings();
                 }
                 return if let Some(id) = self.popup.take() {
-                    cosmic::task::message(cosmic::Action::Cosmic(cosmic::app::Action::Surface(
-                        destroy_popup(id),
-                    )))
+                    destroy_popup(id)
                 } else {
-                    cosmic::task::message(cosmic::Action::Cosmic(cosmic::app::Action::Surface(
-                        app_popup::<CaffeineApplet>(
-                            move |state: &mut CaffeineApplet| {
-                                let new_id = Id::unique();
-                                state.popup = Some(new_id);
-                                state.core.applet.get_popup_settings(
-                                    state.core.main_window_id().unwrap(),
-                                    new_id,
-                                    None,
-                                    None,
-                                    None,
-                                )
-                            },
-                            Some(Box::new(move |state: &CaffeineApplet| {
-                                Element::from(
-                                    state.core.applet.popup_container(state.menu_content()),
-                                )
-                                .map(cosmic::Action::App)
-                            })),
-                        ),
-                    )))
+                    let new_id = Id::unique();
+                    self.popup = Some(new_id);
+                    get_popup(self.core.applet.get_popup_settings(
+                        self.core.main_window_id().unwrap(),
+                        new_id,
+                        None,
+                        None,
+                        None,
+                    ))
                 };
             }
             Message::Enable(choice) => {
@@ -199,21 +265,17 @@ impl cosmic::Application for CaffeineApplet {
                     return Task::none();
                 }
                 if let Some(id) = self.popup.take() {
-                    return cosmic::task::message(cosmic::Action::Cosmic(
-                        cosmic::app::Action::Surface(destroy_popup(id)),
-                    ));
+                    return destroy_popup(id);
                 }
             }
             Message::Disable => {
                 self.disable();
                 if let Some(id) = self.popup.take() {
-                    return cosmic::task::message(cosmic::Action::Cosmic(
-                        cosmic::app::Action::Surface(destroy_popup(id)),
-                    ));
+                    return destroy_popup(id);
                 }
             }
             Message::ToggleInhibit => {
-                if self.inhibit_fd.is_some() {
+                if self.is_active() {
                     self.disable();
                 } else {
                     self.reload_settings();
@@ -235,9 +297,7 @@ impl cosmic::Application for CaffeineApplet {
             Message::Tick => {
                 if let Some(deadline) = self.deadline {
                     if Instant::now() >= deadline {
-                        self.inhibit_fd = None;
-                        self.active_choice = None;
-                        self.deadline = None;
+                        self.disable();
                     }
                 }
             }
@@ -254,48 +314,29 @@ impl cosmic::Application for CaffeineApplet {
     }
 
     fn view(&self) -> Element<'_, Self::Message> {
-        let icon = if self.inhibit_fd.is_some() || self.lid_inhibit_fd.is_some() {
+        let icon = if self.is_active() || self.lid_inhibit_fd.is_some() {
             ON
         } else {
             OFF
         };
-        let suggested = self.core.applet.suggested_size(true);
-        let padding = self.core.applet.suggested_padding(true);
-
-        // Same icon element the applet's own `icon_button` builds, so the panel
-        // renders it identically (symbolic recolor + suggested size).
-        let icon_el = cosmic::widget::icon(
-            cosmic::widget::icon::from_name(icon)
-                .symbolic(true)
-                .size(suggested.0)
-                .into(),
+        // `icon_button` gives us the exact same geometry, symbolic recolor and
+        // `Button::AppletIcon` styling the official applets use. The button only
+        // captures left-click, so right-click falls through to the `mouse_area`.
+        mouse_area(
+            self.core
+                .applet
+                .icon_button(icon)
+                .on_press(Message::ToggleInhibit),
         )
-        .class(cosmic::theme::Svg::Custom(std::rc::Rc::new(|theme| {
-            cosmic::iced_widget::svg::Style {
-                color: Some(theme.cosmic().background.on.into()),
-            }
-        })))
-        .width(cosmic::iced::Length::Fixed(suggested.0 as f32))
-        .height(cosmic::iced::Length::Fixed(suggested.1 as f32));
-
-        cosmic::widget::button::custom(
-            cosmic::widget::layer_container(
-                mouse_area(icon_el).on_right_press(Message::TogglePopup),
-            )
-            .center(cosmic::iced::Length::Fill),
-        )
-        .width(cosmic::iced::Length::Fixed(
-            (suggested.0 + 2 * padding) as f32,
-        ))
-        .height(cosmic::iced::Length::Fixed(
-            (suggested.1 + 2 * padding) as f32,
-        ))
-        .class(cosmic::theme::Button::AppletIcon)
-        .on_press(Message::ToggleInhibit)
+        .on_right_press(Message::TogglePopup)
         .into()
     }
 
-    fn style(&self) -> Option<cosmic::iced_runtime::Appearance> {
+    fn view_window(&self, _id: Id) -> Element<'_, Self::Message> {
+        self.core.applet.popup_container(self.menu_content()).into()
+    }
+
+    fn style(&self) -> Option<cosmic::iced::theme::Style> {
         Some(cosmic::applet::style())
     }
 }
@@ -365,69 +406,166 @@ impl CaffeineApplet {
         }
     }
 
-    /// Acquire the inhibit lock (if not already held) and set the session.
-    /// Returns `false` if the lock could not be acquired.
+    /// True while a Caffeine session holds at least one of its main inhibitors.
+    /// The two are acquired and released together, so in practice they agree;
+    /// the `||` keeps the UI honest if that ever stops being true.
+    fn is_active(&self) -> bool {
+        self.inhibit_fd.is_some() || self.screensaver_inhibit.is_some()
+    }
+
+    fn finish_screensaver_inhibit(
+        &mut self,
+        result: Result<ScreenSaverInhibit, Box<dyn std::error::Error>>,
+    ) {
+        match result {
+            Ok(inhibit) => {
+                self.screensaver_inhibit = Some(inhibit);
+                self.inhibit_error = None;
+            }
+            Err(err) => {
+                eprintln!("Failed to inhibit the screensaver (is cosmic-idle running?): {err}");
+                self.inhibit_error = Some(format!(
+                    "Session started, but the screen may still blank: {err}"
+                ));
+            }
+        }
+    }
+
+    /// Acquire the inhibit locks (if not already held) and set the session.
+    /// Returns `false` if the session could not be started.
+    ///
+    /// Two mechanisms, acquired and released together:
+    ///   * logind `idle:sleep` — portable, blocks suspend requested from
+    ///     elsewhere, and is the only thing that works off COSMIC. Fatal.
+    ///   * `org.freedesktop.ScreenSaver` — the only thing cosmic-idle listens
+    ///     to, so it is what actually stops blanking, locking and suspending on
+    ///     COSMIC. Optional: other desktops may not offer it and a logind-only
+    ///     session is still worth having, so a failure degrades with a warning
+    ///     rather than aborting.
     fn enable(&mut self, choice: CaffeineDuration) -> bool {
-        if self.inhibit_fd.is_none() {
+        if !self.is_active() {
             match acquire_inhibit() {
-                Ok(fd) => self.inhibit_fd = Some(fd),
+                Ok(fd) => {
+                    self.inhibit_fd = Some(fd);
+                    self.inhibit_error = None;
+                }
                 Err(err) => {
                     eprintln!("Failed to acquire inhibit lock (is logind/elogind running?): {err}");
+                    self.inhibit_error = Some(format!("Could not start a Caffeine session: {err}"));
                     return false;
                 }
             }
+            self.finish_screensaver_inhibit(acquire_screensaver_inhibit());
         }
         self.active_choice = Some(choice);
         self.deadline = choice.duration().map(|d| Instant::now() + d);
         true
     }
 
-    /// Drop the fd, releasing the inhibit lock.
+    /// Drop both inhibitors. `ScreenSaverInhibit::drop` sends `UnInhibit`;
+    /// closing its connection is the backstop if that call fails.
     fn disable(&mut self) {
         self.inhibit_fd = None;
+        self.screensaver_inhibit = None;
+        self.inhibit_error = None;
         self.active_choice = None;
         self.deadline = None;
     }
 
     fn menu_content(&self) -> Element<'_, Message> {
-        let mut list = list_column().padding(5).spacing(4);
+        let Spacing {
+            space_none,
+            space_xxs,
+            space_s,
+            ..
+        } = cosmic::theme::spacing();
 
+        // Each inner `Vec` is one logical group. Empty groups are dropped below,
+        // then survivors are joined with one divider between each adjacent pair.
+        // That makes a leading, trailing or doubled divider structurally
+        // impossible, whichever conditional sections happen to be present.
+        let mut sections: Vec<Vec<Element<'_, Message>>> = Vec::new();
+
+        // 1. Duration presets: a radio-like group. Always non-empty, because
+        //    `choices()` always appends `Indefinitely`.
         let now = Instant::now();
-        for choice in self.choices() {
-            let label = self.choice_label(choice, now);
-            let selected = self.active_choice == Some(choice);
-            list = list.add(
-                cosmic::applet::menu_button(text(label))
-                    .class(if selected {
-                        cosmic::theme::Button::ListItem
-                    } else {
-                        cosmic::theme::Button::AppletMenu
-                    })
-                    .selected(selected)
-                    .on_press(Message::Enable(choice)),
-            );
+        sections.push(
+            self.choices()
+                .into_iter()
+                .map(|choice| {
+                    let selected = self.active_choice == Some(choice);
+                    cosmic::applet::menu_button(text::body(self.choice_label(choice, now)))
+                        // `ListItem` now carries its own corner radii; `[0.0; 4]`
+                        // is what it hardcoded before, and matches `AppletMenu`'s
+                        // `radius_0` so the selected row keeps the same geometry.
+                        .class(if selected {
+                            cosmic::theme::Button::ListItem([0.0; 4])
+                        } else {
+                            cosmic::theme::Button::AppletMenu
+                        })
+                        .selected(selected)
+                        .on_press(Message::Enable(choice))
+                        .into()
+                })
+                .collect(),
+        );
+
+        // 2. Terminal action. Identical `menu_button` geometry to the durations
+        //    above, so without a rule it reads as one more duration option.
+        if self.is_active() {
+            sections.push(vec![cosmic::applet::menu_button(text::body(
+                "End Caffeine session",
+            ))
+            .on_press(Message::Disable)
+            .into()]);
         }
 
-        if self.inhibit_fd.is_some() {
-            list = list.add(
-                cosmic::applet::menu_button(text("End Caffeine session"))
-                    .on_press(Message::Disable),
-            );
-        }
-
+        // 3. A persistent setting rather than a one-shot action, and a
+        //    `padded_control` with no hover affordance. The rule signals that
+        //    this row does not behave like the buttons above it.
         if self.settings.dangerous_enable_closed_lid_control {
-            list = list.add(settings::item(
+            sections.push(vec![cosmic::applet::padded_control(settings::item(
                 "Keep awake with lid closed",
                 cosmic::widget::container(
                     toggler(self.lid_inhibit_fd.is_some()).on_toggle(Message::ToggleLidInhibit),
                 ),
-            ));
+            ))
+            .into()]);
+        }
+
+        // 4. Diagnostics, kept as one section so two simultaneous errors are not
+        //    split by a rule. Pushed unconditionally; the filter below drops it
+        //    when empty, so the guards are never duplicated.
+        let mut errors: Vec<Element<'_, Message>> = Vec::new();
+        if let Some(error) = &self.inhibit_error {
+            errors.push(error_row(error.as_str()));
+        }
+        if self.settings.dangerous_enable_closed_lid_control {
             if let Some(error) = &self.lid_inhibit_error {
-                list = list.add(text(format!("Could not enable closed-lid mode: {error}")));
+                errors.push(error_row(format!(
+                    "Could not enable closed-lid mode: {error}"
+                )));
             }
         }
         if let Some(error) = &self.config_error {
-            list = list.add(text(error));
+            errors.push(error_row(error.as_str()));
+        }
+        sections.push(errors);
+
+        // `menu_button`/`padded_control` already carry the horizontal menu
+        // padding, so the column only needs the vertical inset.
+        let mut list = Column::new().padding([space_xxs, space_none]);
+        // `.filter()` MUST precede `.enumerate()` so the index counts
+        // *surviving* sections; reversed, an empty section would take index 0
+        // and let a leading divider through.
+        for (index, section) in sections.into_iter().filter(|s| !s.is_empty()).enumerate() {
+            if index > 0 {
+                list = list.push(
+                    cosmic::applet::padded_control(divider::horizontal::default())
+                        .padding([space_xxs, space_s]),
+                );
+            }
+            list = list.extend(section);
         }
         list.into()
     }
