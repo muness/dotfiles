@@ -96,7 +96,7 @@ curl https://alx.sh | sh
    On Fedora this adds the mise, Tailscale and 1Password repos; installs the
    CLI set, COSMIC (with `cosmic-greeter` if no display manager exists),
    Chromium, KeePassXC, Syncthing, the 1Password arm64 tarball, and flatpaks for
-   Zed, Obsidian, and Vesktop (Discord). Then it builds swamp and Satty from
+   Obsidian and Vesktop (Discord), and installs Zed's native build. Then it builds swamp and Satty from
    source, because neither has an aarch64 Linux release. `--skip-unavailable` means a
    missing package is reported, not fatal; read the dnf output.
 4. Reboot into COSMIC. Open 1Password and turn on the SSH agent and CLI
@@ -298,7 +298,7 @@ listing.
 | HQPlayer Desktop | manual | Debian 13 arm64 build in a distrobox: `scripts/linux/hqplayer-distrobox.sh <deb>`. Desktop 6 lists Debian 13 arm64; check your 5.x downloads for a Debian 12 arm64 build first. Or ask Signalyst for a Fedora aarch64 Desktop build (Embedded has one) |
 | Tern | manual | no Linux build found |
 | ChatGPT (includes Codex) | cask | OpenAI's official Linux app (public preview, Aug 2026): RPM installed by `install_chatgpt`, updates via dnf. Wayland support is experimental; if windows misbehave, quit it and run `chatgpt --ozone-platform=wayland` |
-| Claude desktop | cask | none; use the web app (Claude Code CLI is installed) |
+| Claude desktop | cask | Official Linux beta repackaged for Arch by `vendor-apps.sh`; Anthropic supports Debian and Ubuntu. Fedora is not configured by this installer. |
 | Beeper | cask | not on Flathub; check Beeper's own AppImage |
 | Fork | cask | none; `gitg` or `meld` are in dnf, or use `gh` and the CLI |
 | tectonic | brew | not in mise or dnf; typst (mise) covers most of it |

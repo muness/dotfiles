@@ -12,16 +12,16 @@ while (($#)); do
     --download-only) mode=download ;;
     --build-only) mode=build ;;
     --force) force=1 ;;
-    chatgpt|chrome) apps+=("$1") ;;
+    chatgpt|chrome|claude) apps+=("$1") ;;
     --help|-h)
-      echo 'Usage: vendor-apps.sh [--check|--download-only|--build-only] [--force] [chatgpt|chrome]'
+      echo 'Usage: vendor-apps.sh [--check|--download-only|--build-only] [--force] [chatgpt|chrome|claude]'
       echo 'Default: check vendor feeds, build newer versions, install with pacman.'
       exit 0 ;;
     *) echo "Unknown vendor-app option: $1" >&2; exit 2 ;;
   esac
   shift
 done
-((${#apps[@]})) || apps=(chatgpt chrome)
+((${#apps[@]})) || apps=(chatgpt chrome claude)
 arch=$(uname -m)
 case $arch in aarch64|x86_64) ;; *) echo "Unsupported architecture: $arch" >&2; exit 2 ;; esac
 
@@ -40,7 +40,7 @@ if [[ $mode == install || $mode == build ]]; then
       alsa-lib at-spi2-core bash ca-certificates cairo curl dbus expat gcc-libs \
       gdk-pixbuf2 glib2 glibc gtk3 libcups libdrm libglvnd libnotify libusb \
       libx11 libxcb libxcomposite libxdamage libxext libxfixes libxkbcommon \
-      libxrandr libxss libxtst mesa nspr nss openssl pango systemd-libs \
+      libxrandr libxss libxtst libsecret pipewire mesa nspr nss openssl pango systemd-libs \
       tpm2-tss ttf-liberation vulkan-icd-loader wget xdg-utils xz
   fi
   command -v makepkg >/dev/null || { echo 'makepkg is required (base-devel).' >&2; exit 2; }

@@ -8,6 +8,11 @@ import re
 import subprocess
 
 VENDORS = {
+    "claude": (
+        "https://downloads.claude.ai/claude-desktop/apt/stable",
+        "claude-desktop",
+        "claude-desktop",
+    ),
     "chatgpt": (
         "https://persistent.oaistatic.com/codex-app-prod/linux/deb",
         "chatgpt",

@@ -150,13 +150,13 @@ the explicit profile also supports preparing an ARM VM. The Aurora step
 refuses a VM, Fedora, and non-Apple hardware. It does not repartition the disk.
 
 The 1Password CLI is installed by mise. Its desktop app uses the vendor ARM64
-tarball. Chrome and ChatGPT desktop (including Codex) are installed by
-`scripts/linux/vendor-apps.sh`: it reads the vendors' HTTPS Debian package
-indexes, selects the native stable build, verifies the advertised SHA256 and
+tarball. Chrome, ChatGPT desktop (including Codex), and Claude Desktop are
+installed by `scripts/linux/vendor-apps.sh`: it reads the vendors' HTTPS Debian
+package indexes, selects the native stable builds, verifies the advertised SHA256 and
 repackages the official binaries as local pacman packages. Debian maintainer
 scripts are not run. This adds no AUR helper, third-party repository, or extra
-package manager. Icons and launchers are included; both use native Wayland on
-COSMIC with user overrides in `~/.config/chrome-flags.conf` and
+package manager. Icons and launchers are included; Chrome and ChatGPT use native
+Wayland on COSMIC with user overrides in `~/.config/chrome-flags.conf` and
 `~/.config/chatgpt-flags.conf` (one flag per line; no shell expansion).
 
 Update them separately from repository packages:
@@ -170,8 +170,8 @@ Update them separately from repository packages:
 The updater builds as your user, then uses pkexec for pacman with graphical
 polkit authentication. Cached archives,
 generated recipes and built packages live in
-`~/.cache/dotfiles/vendor-apps/`. The installed names are `google-chrome` and
-`openai-codex-desktop`; remove them with pacman normally. Upstream changes are
+`~/.cache/dotfiles/vendor-apps/`. The installed names are `google-chrome`,
+`openai-codex-desktop` and `claude-desktop`; remove them with pacman normally. Anthropic supports its Linux beta on Debian and Ubuntu, so Arch is an unsupported repackaging. Upstream changes are
 discovered on each updater/installer run, not by a timer or the Debian/RPM app
 updater. `--force` rebuilds/reinstalls a current version. `--build-only` builds
 without installing (Arch build/runtime dependencies must already be present).

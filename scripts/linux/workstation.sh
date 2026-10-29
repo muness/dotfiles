@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # shellcheck source-path=SCRIPTDIR disable=SC2154
 # Workstation helpers shared by Fedora and Arch ARM. Sourced by distro backends.
-desktop_flatpaks=(dev.zed.Zed md.obsidian.Obsidian dev.vencord.Vesktop)
+desktop_flatpaks=(md.obsidian.Obsidian dev.vencord.Vesktop)
 caffeine_applet_id=com.github.codevardhan.caffeine-applet
 
 configure_tailscale_tray() {
@@ -18,7 +18,21 @@ configure_tailscale_tray() {
 install_desktop_flatpaks() {
   flatpak remote-add --user --if-not-exists flathub https://dl.flathub.org/repo/flathub.flatpakrepo
   flatpak install --user -y --noninteractive flathub "${desktop_flatpaks[@]}"
+  install_zed
   install_vicinae
+}
+
+# Zed's official stable build installs and updates in the user's account.
+install_zed() {
+  if ! command -v zed >/dev/null 2>&1; then
+    (
+      local installer
+      installer=$(mktemp)
+      trap 'rm -f "$installer"' EXIT
+      curl -fsSL https://zed.dev/install.sh -o "$installer"
+      sh "$installer"
+    )
+  fi
 }
 
 # Install Vicinae's native Linux build for the current architecture, then keep
