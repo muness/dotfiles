@@ -37,7 +37,7 @@ isolation, private COSMIC settings transfer, and deliberate Touch ID activation.
 
 On Arch ARM, Chrome, ChatGPT, Claude Desktop and BrowserOS neo are included. Re-run
 `scripts/linux/vendor-apps.sh` to update their native vendor binaries; `--check`
-checks versions without installing. The helper verifies vendor SHA256 hashes
+compares installed and available versions without installing. The helper verifies vendor SHA256 hashes
 and builds local pacman packages, so no AUR helper or Debian/RPM tools are needed.
 The desktop profile also schedules weekly user Flatpak, mise and Tether updates;
 the vendor packages are updated when you run the vendor updater.

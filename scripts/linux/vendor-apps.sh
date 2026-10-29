@@ -8,14 +8,15 @@ force=0
 apps=()
 while (($#)); do
   case $1 in
-    --check) mode=check ;;
+    --check|--dry-run) mode=check ;;
     --download-only) mode=download ;;
     --build-only) mode=build ;;
     --force) force=1 ;;
     chatgpt|chrome|claude|browseros) apps+=("$1") ;;
     --help|-h)
-      echo 'Usage: vendor-apps.sh [--check|--download-only|--build-only] [--force] [chatgpt|chrome|claude|browseros]'
+      echo 'Usage: vendor-apps.sh [--check|--dry-run|--download-only|--build-only] [--force] [chatgpt|chrome|claude|browseros]'
       echo 'Default: check vendor feeds, build newer versions, install with pacman.'
+      echo '--check/--dry-run compares installed packages without downloading or installing.'
       exit 0 ;;
     *) echo "Unknown vendor-app option: $1" >&2; exit 2 ;;
   esac
@@ -50,8 +51,24 @@ cache_root=${XDG_CACHE_HOME:-$HOME/.cache}/dotfiles/vendor-apps
 for app in "${apps[@]}"; do
   metadata=$(python3 "$here/vendor-app-metadata.py" "$app" "$arch" --tsv)
   IFS=$'\t' read -r package version pkgver pkgrel url sha256 size <<<"$metadata"
+  if [[ $mode == check ]]; then
+    if ! command -v pacman >/dev/null || ! command -v vercmp >/dev/null; then
+      echo "$app: latest $pkgver-$pkgrel ($arch); installed version unavailable on this system"
+    else
+      installed=$(pacman -Q "$package" 2>/dev/null | cut -d' ' -f2) || installed=
+      if [[ -z $installed ]]; then
+        echo "$app: not installed; would install $pkgver-$pkgrel ($size bytes)"
+      elif [[ $force == 1 ]]; then
+        echo "$app: installed $installed; would rebuild and install $pkgver-$pkgrel (--force)"
+      elif (( $(vercmp "$installed" "$pkgver-$pkgrel") < 0 )); then
+        echo "$app: installed $installed; would update to $pkgver-$pkgrel ($size bytes)"
+      else
+        echo "$app: installed $installed; current (vendor $pkgver-$pkgrel)"
+      fi
+    fi
+    continue
+  fi
   echo "$app: vendor version $version, $arch, $size bytes"
-  [[ $mode == check ]] && continue
   if [[ $mode == install && $force == 0 ]]; then
     installed=$(pacman -Q "$package" 2>/dev/null | cut -d' ' -f2) || installed=
     if [[ -n $installed ]] && (( $(vercmp "$installed" "$pkgver-$pkgrel") >= 0 )); then

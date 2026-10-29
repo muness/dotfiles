@@ -162,7 +162,7 @@ Wayland on COSMIC with user overrides in `~/.config/chrome-flags.conf` and
 Update them separately from repository packages:
 
 ```bash
-~/dotfiles/scripts/linux/vendor-apps.sh --check  # vendor versions only
+~/dotfiles/scripts/linux/vendor-apps.sh --check  # preview vendor package changes
 ~/dotfiles/scripts/linux/vendor-apps.sh         # full Arch upgrade, newer vendor apps
 ~/dotfiles/scripts/linux/vendor-apps.sh chrome  # update only Chrome
 ~/dotfiles/scripts/linux/check-desktop-updates.sh  # vendors, Tether, Aurora and Omarchy source

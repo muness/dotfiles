@@ -3,6 +3,7 @@
 set -u
 here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 status=0
+echo 'Vendor packages (dry run; full system upgrade is not simulated):'
 bash "$here/vendor-apps.sh" --check || status=1
 python3 "$here/github-release-metadata.py" tether || status=1
 bash "$here/aurora.sh" --check || status=1
