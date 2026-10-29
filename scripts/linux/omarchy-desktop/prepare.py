@@ -59,6 +59,22 @@ def main(source, destination):
     write(runtime / 'desktop-disabled-commands.txt', '\n'.join(sorted(disabled)) + '\n')
     write(runtime / 'desktop-source-revision', REVISION + '\n')
 
+    # Expose only read-only package and disk queries from the management set.
+    # Mutating upstream helpers assume an Omarchy-managed OS and remain blocked.
+    for name in ('omarchy-pkg-present', 'omarchy-pkg-missing', 'omarchy-pkg-available', 'omarchy-drive-info'):
+        shutil.copy2(source / 'bin' / name, runtime / 'bin' / name)
+        (runtime / 'bin' / name).chmod(0o755)
+        if name in disabled:
+            disabled.remove(name)
+    write(runtime / 'desktop-disabled-commands.txt', '\n'.join(sorted(disabled)) + '\n')
+    script('omarchy-desktop-package-install', '''set -euo pipefail
+read -r -p "Arch package name: " package
+[[ $package =~ ^[a-zA-Z0-9@._+:-]+$ ]] || { echo "Invalid package name" >&2; exit 1; }
+pacman -Si "$package" >/dev/null || { echo "Package not found in configured repositories" >&2; exit 1; }
+exec pkexec /usr/bin/pacman -Syu --needed "$package"''')
+    script('omarchy-desktop-system-update', '''set -euo pipefail
+exec pkexec /usr/bin/pacman -Syu''')
+
     # Restrict theme switching to the desktop and its own terminal, leaving
     # COSMIC, browser, editor and application preferences alone.
     theme = runtime / 'bin/omarchy-theme-set'
@@ -91,6 +107,17 @@ end)
     lines = menu.read_text().splitlines()
     hidden = ('setup', 'install', 'remove', 'update')
     menu.write_text('\n'.join(line for line in lines if not any(re.match(r'\s*"' + key + r'(?:\.|\")', line) for key in hidden)) + '\n')
+    text = menu.read_text()
+    entries = '''  "setup": {"icon":"","label":"Setup","aliases":["settings"]},
+  "setup.monitors": {"label":"Monitors","action":"omarchy-launch-config-editor \\"$HOME/.config/hypr/monitors.lua\\""},
+  "setup.keybindings": {"label":"Keybindings","action":"omarchy-launch-config-editor \\"$HOME/.config/hypr/bindings.lua\\""},
+  "setup.input": {"label":"Input","action":"omarchy-launch-config-editor \\"$HOME/.config/hypr/input.lua\\""},
+  "install": {"icon":"󰉉","label":"Install"},
+  "install.package": {"label":"Arch Package","action":"omarchy-launch-floating-terminal-with-presentation omarchy-desktop-package-install"},
+  "update": {"icon":"","label":"Update"},
+  "update.system": {"label":"System Packages","action":"omarchy-launch-floating-terminal-with-presentation omarchy-desktop-system-update"},
+'''
+    menu.write_text(text.replace('  // Root Menu\n', '  // Root Menu\n' + entries, 1))
     config = json.loads((runtime / 'config/omarchy/shell.json').read_text())
     for section in config['bar']['layout'].values():
         section[:] = [item for item in section if item['id'] != 'omarchy.system-update']

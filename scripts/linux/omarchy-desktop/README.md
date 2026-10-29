@@ -2,7 +2,7 @@
 
 This local package uses Omarchy Mac commit `ba546a61f881c1fe9d79d75ec050eab048b8cb63` (4.0.3rc4). It supplies a Hyprland/Quickshell session while COSMIC Greeter, Arch repositories, Aurora, TLP and the existing memory protection remain managed independently.
 
-It omits upstream system provisioning, migrations, pacman hooks, global environment changes, boot configuration and `/etc/skel` seeding. System-management commands are replaced with explanatory failures, and their root menus are omitted. Themes affect the Omarchy desktop and Foot, rather than browser/editor/COSMIC preferences. The microphone remapping is omitted.
+It omits upstream system provisioning, migrations, pacman hooks, global environment changes, boot configuration and `/etc/skel` seeding. Most upstream system-management commands remain disabled. The menu offers monitor, keybinding and input configuration, plus Arch package installation and a full system package update using pacman and graphical polkit authentication. Read-only package and disk queries are also available. These controls do not run Omarchy migrations or manage Aurora's boot stack. Themes affect the Omarchy desktop and Foot, rather than browser/editor/COSMIC preferences. The microphone remapping is omitted.
 
 The local package also renames the theme singleton to `ThemeColor`: Qt 6.12's built-in `QtQuick.Color` otherwise shadows the original `Color` singleton and leaves the shell unthemed. It includes `qt6-imageformats` for the shipped WebP backgrounds. Omarchy autostart explicitly finalizes UWSM before starting session services.
 
@@ -22,6 +22,12 @@ pkexec /usr/bin/python3 ~/dotfiles/scripts/linux/omarchy-desktop/install-host.py
 python3 ~/dotfiles/scripts/linux/omarchy-desktop/configure-user.py
 ```
 
+If upgrading the package during an active Omarchy session, reload Hyprland and
+restart the shell after installation: `hyprctl reload && omarchy-restart-shell`.
+Pacman temporarily replaces the shell's files during the upgrade; the running
+shell can otherwise retain a failed configuration reload. Do not restart the
+shell while the session is locked.
+
 `install-host.py` takes a root Btrfs snapshot, performs a normal full Arch upgrade with the desktop dependencies, installs the local package and verifies the Aurora package versions, holds, boot image and Apple HID modules. `configure-user.py` backs up and replaces only `~/.config/{hypr,omarchy,foot}` and the Hyprland-specific UWSM environment, then seeds the initial theme. It does not copy the whole upstream user skeleton. Use it deliberately: rerunning resets those three config directories again.
 
 Lock PAM services are staged as templates; installation preserves an existing service and creates only missing ones. In particular, the existing fingerprint service on this host predates this integration and is retained.
@@ -30,7 +36,7 @@ The separate `../omarchy-host-setup.py` adds fingerprint-first login with passwo
 
 ## Login and verification
 
-Log out normally and choose **Omarchy** at COSMIC Greeter. No greeter restart or forced logout is performed by these scripts. `Super+Return` opens Foot, `Super+B` the existing default browser, `Super+E` COSMIC Files, and `Super+Space` the Omarchy menu. Use the system menu to log out and select COSMIC again.
+Log out normally and choose **Omarchy** at COSMIC Greeter. No greeter restart or forced logout is performed by these scripts. `Super+Return` opens Foot, `Super+B` the existing default browser, `Super+E` Nautilus, and `Super+Space` the Omarchy menu. Use the system menu to log out and select COSMIC again.
 
 Check password and fingerprint authentication separately, including after resume. COSMIC login and lock offer fingerprint authentication before password; after three failed scans or a ten-second timeout, password authentication uses the original stack. Omarchy's lock has separate password/fingerprint flows. Fingerprint success does not supply a password to decrypt a password-protected login keyring.
 

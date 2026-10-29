@@ -2,10 +2,10 @@
 bun = "latest"
 node = "latest"
 pnpm = "latest"
-python = "3.14"
-ruby = "3.3.6"
-go = "1.23.5"
-duckdb = "1.3.2"
+python = "latest"
+ruby = "latest"
+go = "latest"
+duckdb = "latest"
 dotnet = "latest"
 
 # CLI set that used to be listed separately in the Brewfile, fedora.sh and
@@ -34,4 +34,4 @@ typst = "latest"
 d2 = "latest"
 cloudflared = "latest"
 coder = "latest"
-java = ["temurin-21", "temurin-17"]
+java = "temurin"

@@ -85,7 +85,7 @@ hl.config({
     (config / 'hypr/bindings.lua').write_text('''-- Existing applications, launched in UWSM application scopes.
 o.bind("SUPER + Return", "Terminal", "omarchy-launch-terminal")
 o.bind("SUPER + B", "Browser", "omarchy-launch-browser")
-o.bind("SUPER + E", "Files", "uwsm-app -- cosmic-files")
+o.bind("SUPER + E", "Files", "uwsm-app -- nautilus")
 ''')
     # Retain the previously qualified internal-panel mode and scale.
     (config / 'hypr/monitors.lua').write_text('''hl.monitor({ output = "", mode = "preferred", position = "auto", scale = "auto" })

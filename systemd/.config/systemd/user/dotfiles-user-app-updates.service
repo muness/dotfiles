@@ -1,0 +1,8 @@
+[Unit]
+Description=Update user Flatpaks, mise tools and Tether
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash %h/dotfiles/scripts/linux/update-user-apps.sh

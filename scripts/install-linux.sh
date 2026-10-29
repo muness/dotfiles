@@ -75,6 +75,9 @@ if declare -F install_swamp >/dev/null; then install_swamp; fi
 if declare -F install_satty >/dev/null; then install_satty; fi
 schedule_swamp
 enable_user_services caddy.service cloudflared.service
+if [[ ${SKIP_DESKTOP:-} != 1 ]]; then
+  enable_user_services dotfiles-user-app-updates.timer
+fi
 
 zsh -n "$HOME/.zshenv" "$HOME/.zprofile" "$HOME/.zshrc"
 zsh -lic 'command -v mise; printf "zsh configuration: PASS\\n"'

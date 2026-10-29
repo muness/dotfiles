@@ -12,16 +12,16 @@ while (($#)); do
     --download-only) mode=download ;;
     --build-only) mode=build ;;
     --force) force=1 ;;
-    chatgpt|chrome|claude) apps+=("$1") ;;
+    chatgpt|chrome|claude|browseros) apps+=("$1") ;;
     --help|-h)
-      echo 'Usage: vendor-apps.sh [--check|--download-only|--build-only] [--force] [chatgpt|chrome|claude]'
+      echo 'Usage: vendor-apps.sh [--check|--download-only|--build-only] [--force] [chatgpt|chrome|claude|browseros]'
       echo 'Default: check vendor feeds, build newer versions, install with pacman.'
       exit 0 ;;
     *) echo "Unknown vendor-app option: $1" >&2; exit 2 ;;
   esac
   shift
 done
-((${#apps[@]})) || apps=(chatgpt chrome claude)
+((${#apps[@]})) || { apps=(chatgpt chrome claude); [[ $(uname -m) != aarch64 ]] || apps+=(browseros); }
 arch=$(uname -m)
 case $arch in aarch64|x86_64) ;; *) echo "Unsupported architecture: $arch" >&2; exit 2 ;; esac
 
@@ -71,8 +71,11 @@ for app in "${apps[@]}"; do
   echo "Verified vendor archive: $artifact"
   [[ $mode == download ]] && continue
 
-  cp "$here/vendor-packages/$app-launcher.sh" "$build_dir/launcher.sh"
-  launcher_sha=$(sha256sum "$build_dir/launcher.sh" | cut -d' ' -f1)
+  launcher_sha=
+  if [[ $app != browseros ]]; then
+    cp "$here/vendor-packages/$app-launcher.sh" "$build_dir/launcher.sh"
+    launcher_sha=$(sha256sum "$build_dir/launcher.sh" | cut -d' ' -f1)
+  fi
   python3 - "$here/vendor-packages/$app.PKGBUILD" "$build_dir/PKGBUILD" \
     "$pkgver" "$pkgrel" "$url" "$sha256" "$launcher_sha" <<'PY'
 from pathlib import Path

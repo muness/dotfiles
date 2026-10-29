@@ -21,7 +21,7 @@ def main(archive):
     if os.geteuid() != 0:
         raise SystemExit('Run with pkexec /usr/bin/python3 ' + str(Path(__file__).resolve()) + ' PACKAGE')
     archive = Path(archive).resolve(strict=True)
-    if output('/usr/bin/pacman', '-Qp', str(archive)).strip() != 'omarchy-desktop-cosmic 4.0.3rc4-2':
+    if output('/usr/bin/pacman', '-Qp', str(archive)).strip() != 'omarchy-desktop-cosmic 4.0.3rc4-3':
         raise SystemExit('Unexpected desktop package')
     config = Path('/etc/pacman.conf').read_bytes()
     pins = [line for line in config.splitlines() if line.startswith(b'IgnorePkg')]

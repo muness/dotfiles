@@ -1,23 +1,17 @@
 # BrowserOS neo alongside Chrome on Asahi
 
 BrowserOS neo provides a persistent Chromium browser that external agents drive
-over MCP. This recipe pins the official Linux ARM64 build to **0.51.2.3** and
-verifies its SHA-256. It installs a separate browser/profile without changing the
+over MCP. The vendor updater selects the latest official Linux ARM64 release and
+verifies its published SHA-256. It installs a separate browser/profile without changing the
 default browser or importing Chrome's passwords, cookies, or history.
 
 ## Build and install on Arch Linux ARM
 
-Use a machine with the normal Arch packaging tools (`base-devel`). Build as your
-regular user, then elevate only the package installation:
+Use the shared vendor updater, which builds as your regular user and asks for
+polkit authentication only for package installation:
 
 ```sh
-mkdir -p ~/.cache/dotfiles/browseros-neo
-cp ~/dotfiles/scripts/linux/vendor-packages/browseros-neo.PKGBUILD \
-  ~/.cache/dotfiles/browseros-neo/PKGBUILD
-cd ~/.cache/dotfiles/browseros-neo
-makepkg --force
-# Use the exact package filename printed by makepkg; compression is host-specific.
-pkexec /usr/bin/pacman -U /absolute/path/to/browseros-neo-bin-VERSION-aarch64.pkg.tar.xz
+~/dotfiles/scripts/linux/vendor-apps.sh browseros
 ```
 
 The recipe retains the vendor sandbox and installs root-owned files through
@@ -81,9 +75,11 @@ MCP initialization and tab listing succeeded. The 1Password helper logged
 successful browser verification and a desktop-app connection, and the user
 confirmed unlocking worked. This did not establish a speed advantage over Chrome.
 
-Updates are manual: review a new official release, update the recipe's version
-and SHA-256, rebuild and install with pacman. Do not rely on a browser self-updater
-to replace system-owned files. To remove the package, use
+Run `~/dotfiles/scripts/linux/vendor-apps.sh --check browseros` to check for a
+new ARM64 build, and run it without `--check` to update. The normal vendor updater
+also includes BrowserOS on ARM64. It uses the release asset's published SHA-256;
+updates are not scheduled and the browser cannot replace root-owned files itself.
+To remove the package, use
 `pkexec /usr/bin/pacman -R browseros-neo-bin`; retain or remove the profile
 separately. Use `codex mcp remove browseros-neo` to remove the Codex connection.
 Remove only the `browserclaw` line from 1Password's allowlist if it is no longer

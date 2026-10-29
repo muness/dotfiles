@@ -35,10 +35,12 @@ kernel/boot stack with SEP writes disabled. `scripts/linux/aurora.sh` also runs
 independently. See the [Arch/Aurora runbook](docs/asahi-arch-aurora.md) for boot
 isolation, private COSMIC settings transfer, and deliberate Touch ID activation.
 
-On Arch ARM, Chrome, ChatGPT and Claude Desktop are included. Re-run
+On Arch ARM, Chrome, ChatGPT, Claude Desktop and BrowserOS neo are included. Re-run
 `scripts/linux/vendor-apps.sh` to update their native vendor binaries; `--check`
 checks versions without installing. The helper verifies vendor SHA256 hashes
 and builds local pacman packages, so no AUR helper or Debian/RPM tools are needed.
+The desktop profile also schedules weekly user Flatpak, mise and Tether updates;
+the vendor packages are updated when you run the vendor updater.
 
 ## What differs by OS
 
@@ -63,7 +65,7 @@ Cargo and sccache settings, and the mise toolchain list.
 The Brewfile and the dnf, pacman and apt lists hold only what mise can't: shells and
 zsh plugins, stow, GUI apps, and system or kernel-level packages.
 
-**Python is always mise's.** `python = "3.14"` is pinned in that file, and
+**Python is always mise's.** `python = "latest"` is selected in that file, and
 mise's shims directory comes first on `PATH` in `.zshenv` and `.zprofile`. So
 scripts, IDEs and non-interactive shells get it too, never Homebrew's or the
 distro's `/usr/bin/python3`. The system one stays installed because dnf needs
@@ -130,7 +132,7 @@ Vicinae is installed for desktop profiles on Fedora and Arch Linux, and its
 user service starts at login. Invoke it with `vicinae toggle`; add that command
 as a custom shortcut in COSMIC Settings → Keyboard if you want a launcher key.
 
-On Arch desktop installs, Tether is installed from a checksum-pinned upstream
+On Arch desktop installs, Tether is installed from the latest checksum-verified upstream
 AppImage, with its user service enabled and BlueZ's OBEX package installed.
 To install or update it separately, run `bash ~/dotfiles/scripts/linux/tether.sh`.
 Before Bluetooth pairing, run the installed AppImage with `--bt-setup` and

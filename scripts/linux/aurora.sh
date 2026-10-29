@@ -30,7 +30,17 @@ if [[ ! -r /proc/device-tree/compatible ]] || ! grep -aq 'apple,arm-platform' /p
   echo 'Aurora requires a native Apple Silicon installation, not an ARM VM.' >&2
   exit 2
 fi
-[[ $mode == --check ]] && exit 0
+if [[ $mode == --check ]]; then
+  here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+  IFS=$'\t' read -r latest _ _ < <(python3 "$here/github-release-metadata.py" aurora)
+  [[ -n ${latest:-} ]] || { echo 'Could not check Aurora releases.' >&2; exit 1; }
+  echo "Reviewed release: $release; latest published release: $latest"
+  if [[ $latest != "$release" ]]; then
+    echo "New Aurora release available: https://github.com/omacom/linux-aurora/releases/tag/$latest"
+    echo 'Review release notes and stack compatibility before changing the installer pin.'
+  fi
+  exit 0
+fi
 
 download=$(mktemp -d)
 trap 'rm -rf "$download"' EXIT
