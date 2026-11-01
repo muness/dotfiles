@@ -1,0 +1,15 @@
+[Unit]
+Description=Reinitialize Apple Silicon Broadcom Wi-Fi immediately after resume
+After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
+After=NetworkManager.service
+
+[Service]
+# Finish the start job as soon as exec succeeds. A stuck recovery must not
+# keep suspend.target's start transaction pending and reject shutdown/reboot.
+Type=exec
+ExecStart=/usr/local/libexec/dotfiles-wifi-resume --force
+RuntimeMaxSec=90
+TimeoutStopSec=5
+
+[Install]
+WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
