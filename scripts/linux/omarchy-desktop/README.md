@@ -53,8 +53,9 @@ The separate `../omarchy-host-setup.py` adds fingerprint-first login with passwo
 
 Public Wi-Fi login pages use the installed `capnet-assist`. The user setup also
 installs `omarchy-captive-portal.service`, started through Hyprland XDG autostart
-and stopped with the graphical session. It watches NetworkManager connectivity
-and opens the assistant once when a captive portal is detected, including one
+and stopped with the graphical session. It watches each Wi-Fi device separately,
+so a working USB tether cannot hide a captive portal. It obtains the login
+redirect through the Wi-Fi interface and opens the assistant once, including one
 already present at login. Offline/limited connectivity does not open a window;
 repeated portal notifications do not reopen a dismissed assistant.
 
@@ -65,7 +66,7 @@ python3 ~/dotfiles/scripts/linux/omarchy-desktop/install-captive-portal.py
 systemctl --user status omarchy-captive-portal.service
 ```
 
-It requires `python-gobject`, `libnm`, and `capnet-assist` (desktop package
+It requires `python-gobject`, `libnm`, `curl`, and `capnet-assist` (desktop package
 dependencies). For a portal missed by NetworkManager, launch
 `io.elementary.capnet-assist` manually. Listener logs are available with
 `journalctl --user -u omarchy-captive-portal.service`.

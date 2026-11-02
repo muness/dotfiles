@@ -11,7 +11,7 @@ depends=('hyprland' 'quickshell' 'uwsm' 'gum' 'jq' 'perl' 'foot'
          'xdg-desktop-portal-gtk' 'xdg-terminal-exec' 'wireplumber'
          'wl-clipboard' 'brightnessctl' 'udiskie' 'hyprpicker' 'hyprsunset'
          'socat' 'inotify-tools' 'ttf-jetbrains-mono-nerd' 'woff2-font-awesome'
-         'python' 'python-dbus' 'python-gobject' 'libnm' 'capnet-assist'
+         'python' 'python-dbus' 'python-gobject' 'libnm' 'capnet-assist' 'curl'
          'bluez-tools' 'fprintd' 'grim' 'slurp' 'wf-recorder'
          'nautilus' 'gvfs-smb' 'gvfs-nfs' 'gvfs-mtp')
 source=()
