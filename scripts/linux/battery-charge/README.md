@@ -31,6 +31,14 @@ failure it restores the previous configuration and attempts to restore the previ
 runtime threshold. No reboot, service restart or forced discharge is needed.
 Above 80%, the Home setting stops further charging; ordinary use lowers the charge.
 
+On this TLP-managed host, the stock `asahi-scripts` charge-limit persistence
+must stay disabled: its sysfs path watcher repeatedly starts until it hits
+systemd's rate limit, and its udev rule can restore an older cap over TLP's
+setting. The local `/etc/udev/rules.d/93-macsmc-battery-charge-control.rules`
+override points to `/dev/null`, and
+`macsmc-battery-charge-control-end-threshold.{path,service}` are masked.
+TLP remains responsible for restoring the selected cap at boot and power changes.
+
 This deliberately keeps the standard battery widget: Omarchy reserves its clicks
 for its power panel and battery-percentage toggle. The glyph inherits the
 bar's fonts, colors and interaction styles.

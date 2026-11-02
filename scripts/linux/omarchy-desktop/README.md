@@ -10,6 +10,17 @@ installed helpers; the restricted system-management helpers remain disabled.
 
 The local package also renames the theme singleton to `ThemeColor`: Qt 6.12's built-in `QtQuick.Color` otherwise shadows the original `Color` singleton and leaves the shell unthemed. It includes `qt6-imageformats` for the shipped WebP backgrounds. Omarchy autostart explicitly finalizes UWSM before starting session services.
 
+The scratchpad uses Hyprland's `workspace.created` event to launch the configured agent when an empty scratchpad is first opened, replacing the deprecated `on_created_empty` workspace rule.
+
+The lock service avoids a stale `WlSessionLock.locked` binding in Quickshell
+0.3.2. Lock requests consult the current request and compositor acknowledgement,
+so unlocking cannot cause a later pre-suspend lock to be skipped. The sleep
+monitor still requires `secure=true` before declaring the screen locked.
+`python3 scripts/linux/omarchy-desktop/check-lock.py` exercises three real
+lock/unlock cycles on an isolated headless Sway compositor, without affecting
+the active session. Its temporary authentication bypass exists only in that
+private test copy; no test IPC method is installed in the desktop shell.
+
 ## Build and install
 
 Obtain a clean checkout of the pinned source. `prepare.py` verifies its commit and working tree; it never runs the upstream installer.

@@ -7,6 +7,8 @@ caffeine_applet_id=com.github.codevardhan.caffeine-applet
 configure_tailscale_tray() {
   command -v tailscale >/dev/null 2>&1 || return 0
   if tailscale configure systray --enable-startup=systemd; then
+    # Tailscale can generate the unit with executable permissions.
+    chmod a-x "${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/tailscale-systray.service"
     systemctl --user daemon-reload
     systemctl --user enable --now tailscale-systray.service ||
       echo 'warning: enable tailscale-systray.service after logging into COSMIC' >&2

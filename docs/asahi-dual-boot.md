@@ -134,8 +134,15 @@ numbers, so each OS would see the other's files as a stranger's.
 `src-mount-linux.sh` fixes this on the Linux side with an **idmapped mount**:
 
 ```
-LABEL=src /Volumes/src ext4 defaults,noatime,nofail,X-mount.idmap=u:501:1000:1\040g:20:1000:1 0 2
+LABEL=src /Volumes/src ext4 defaults,noatime,nofail,x-systemd.before=local-fs.target,X-mount.idmap=u:501:1000:1\040g:20:1000:1 0 2
 ```
+
+`x-systemd.before=local-fs.target` restores the filesystem ordering that
+`nofail` removes. On shutdown, services and user sessions stop before `src`
+unmounts, preventing the recurring "target is busy" failure. A missing disk
+remains nonfatal at boot, though boot waits for its mount attempt to finish.
+Rerunning `src-mount-linux.sh` adds this option to an existing entry while
+preserving its other options.
 
 Inside `/Volumes/src` the Linux user sees its own files as 1000:1000, and they
 are stored on disk as 501:20, which is what macOS expects. Nothing about the

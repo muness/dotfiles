@@ -49,6 +49,16 @@ install_system_packages() {
   fi
   arch_install_optional "${arch_desktop_optional[@]}"
   sudo systemctl enable --now NetworkManager
+  # Base Asahi images may also enable networkd. NetworkManager owns desktop
+  # interfaces; networkd's Ethernet wait otherwise delays Wi-Fi-only boots.
+  sudo systemctl disable --now systemd-networkd.service systemd-networkd-wait-online.service \
+    systemd-networkd.socket systemd-networkd-varlink.socket \
+    systemd-networkd-varlink-metrics.socket systemd-networkd-resolve-hook.socket
+  if systemctl is-active --quiet avahi-daemon.service && systemctl is-active --quiet systemd-resolved.service; then
+    sudo install -Dm644 "$dotfiles_dir/config/linux-network/60-mdns-resolve.conf" \
+      /etc/systemd/resolved.conf.d/60-mdns-resolve.conf
+    sudo systemctl restart systemd-resolved.service
+  fi
   if ! systemctl is-enabled display-manager.service >/dev/null 2>&1; then
     sudo systemctl enable cosmic-greeter.service
   fi

@@ -35,7 +35,9 @@ blkid -L "$label" >/dev/null || { echo "No filesystem labelled '$label'. Run src
 
 # No X-mount.mkdir: util-linux refuses it from fstab ("operation permitted for
 # root only"), so the mount point is created below instead.
-options=defaults,noatime,nofail
+# nofail removes systemd's normal local-fs ordering too. Restore ordering so
+# user sessions stop before unmounting, while a missing disk remains nonfatal.
+options=defaults,noatime,nofail,x-systemd.before=local-fs.target
 if ((uid != mac_uid || gid != mac_gid)); then
   # u:<id on disk>:<id seen through the mount>:<count>. mount(8) words these
   # fields the other way round; this order is the one that works (verified
@@ -45,6 +47,19 @@ fi
 entry="LABEL=$label $mountpoint ext4 $options 0 2"
 
 if grep -qE "^[^#]*[[:space:]]${mountpoint}[[:space:]]" /etc/fstab; then
+  # Upgrade existing entries without replacing their ownership mapping/options.
+  updated_fstab=$(mktemp)
+  awk -v target="$mountpoint" '
+    $1 !~ /^#/ && $2 == target && $4 !~ /(^|,)x-systemd\.before=local-fs\.target(,|$)/ {
+      $4 = $4 ",x-systemd.before=local-fs.target"
+    }
+    { print }
+  ' /etc/fstab >"$updated_fstab"
+  if ! cmp -s /etc/fstab "$updated_fstab"; then
+    cp /etc/fstab "/etc/fstab.bak.$(date +%Y%m%d%H%M%S)"
+    cat "$updated_fstab" >/etc/fstab
+  fi
+  rm -f "$updated_fstab"
   echo "/etc/fstab already has an entry for $mountpoint:"
   grep -E "[[:space:]]${mountpoint}[[:space:]]" /etc/fstab
   echo "Expected: $entry"

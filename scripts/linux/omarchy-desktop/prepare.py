@@ -10,6 +10,24 @@ import sys
 REVISION = 'ba546a61f881c1fe9d79d75ec050eab048b8cb63'
 
 
+def patch_lock_service(text):
+    # Quickshell 0.3.2 can clear WlSessionLock.locked without invalidating
+    # bindings after unlock. Its stale aggregate then suppresses the next lock.
+    replacements = {
+        '  readonly property bool locked: lockRequested || sessionLock.locked || sessionLock.secure':
+        '''  // Track our request and the compositor acknowledgement. The WlSessionLock
+  // request property can leave dependent bindings stale after unlocking.
+  readonly property bool locked: lockRequested || sessionLock.secure''',
+        '      if (!root.locked && !root.beginLock()) return "failed"':
+        '      if (!root.lockRequested && !sessionLock.secure && !root.beginLock()) return "failed"',
+    }
+    for original, replacement in replacements.items():
+        if text.count(original) != 1:
+            raise ValueError('Omarchy lock service changed; review required')
+        text = text.replace(original, replacement)
+    return text
+
+
 def main(source, destination):
     source, destination = Path(source), Path(destination)
     actual = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
@@ -20,6 +38,22 @@ def main(source, destination):
     runtime.mkdir(parents=True)
     for name in ('bin', 'config', 'default', 'themes', 'shell'):
         shutil.copytree(source / name, runtime / name)
+    # Hyprland 0.57 deprecates on_created_empty. Seed only newly created,
+    # empty scratchpads, preserving the lazy launch and explicit placement.
+    qconsole = runtime / 'default/hypr/qconsole.lua'
+    text = qconsole.read_text()
+    seed = 'local seed = "[workspace special:scratchpad silent] omarchy-agent"'
+    rule = '\n    on_created_empty = seed,\n'
+    if text.count(seed) != 1 or text.count(rule) != 1:
+        raise SystemExit('Omarchy scratchpad layout changed; review required')
+    handler = '''
+
+hl.on("workspace.created", function(workspace)
+  if workspace.addressable_name == "special:scratchpad" and workspace.is_empty then
+    hl.exec_cmd(seed)
+  end
+end)'''
+    qconsole.write_text(text.replace(seed, seed + handler).replace(rule, ''))
     # Qt 6.12 introduces QtQuick.Color, which wins unqualified resolution over
     # this source's singleton. Without a unique name every theme surface is
     # undefined even though QML reports that the configuration loaded.
@@ -30,6 +64,8 @@ def main(source, destination):
     (commons / 'Color.qml').rename(commons / 'ThemeColor.qml')
     module = commons / 'qmldir'
     module.write_text(module.read_text().replace('singleton Color 1.0 Color.qml', 'singleton ThemeColor 1.0 ThemeColor.qml'))
+    lock_service = runtime / 'shell/plugins/lock/Service.qml'
+    lock_service.write_text(patch_lock_service(lock_service.read_text()))
     for name in ('version', 'LICENSE', 'logo.txt', 'logo.svg', 'icon.png', 'icon.txt'):
         shutil.copy2(source / name, runtime / name)
     # Theme helpers source this pure helper; provisioning scripts are omitted.
