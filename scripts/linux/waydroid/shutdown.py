@@ -12,8 +12,8 @@ def shutdown(run=subprocess.run):
         raise RuntimeError('Could not stop the Android session.')
     state = call('/usr/bin/systemctl', 'is-active', '--quiet', 'waydroid-container.service')
     if state == 0:
-        if call('/usr/bin/pkexec', '/usr/bin/systemctl', 'stop', 'waydroid-container.service'):
-            raise RuntimeError('Android session stopped, but container shutdown failed or authentication was cancelled.')
+        if call('/usr/bin/systemctl', '--no-ask-password', 'stop', 'waydroid-container.service'):
+            raise RuntimeError('Android session stopped, but container shutdown was not authorized or failed.')
     elif state != 3:
         raise RuntimeError('Could not determine whether the container service is stopped.')
     if call('/usr/bin/systemctl', 'is-active', '--quiet', 'waydroid-container.service') != 3:

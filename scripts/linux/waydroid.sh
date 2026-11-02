@@ -7,16 +7,21 @@ elevate=(pkexec)
 for arg in "$@"; do
   case $arg in
     --launchers-only) mode=launchers ;;
+    --service-controls-only) mode=controls ;;
     --check) mode=check ;;
     --sudo) elevate=(sudo) ;;
     --help|-h)
-      echo 'Usage: waydroid.sh [--check|--launchers-only] [--sudo]'
+      echo 'Usage: waydroid.sh [--check|--launchers-only|--service-controls-only] [--sudo]'
       echo 'Opt-in Arch ARM/Asahi installation; existing Android images/data are preserved.'
       exit 0 ;;
     *) echo "Unknown option: $arg" >&2; exit 2 ;;
   esac
 done
 ((EUID != 0)) || { echo 'Run as the desktop user, not root.' >&2; exit 2; }
+if [[ $mode == controls ]]; then
+  "${elevate[@]}" /usr/bin/python3 "$here/waydroid/install-service-permission.py" "$(id -un)"
+  exec /usr/bin/python3 "$here/waydroid/install-launchers.py"
+fi
 if [[ $mode == launchers ]]; then
   exec /usr/bin/python3 "$here/waydroid/install-launchers.py"
 fi
@@ -84,5 +89,6 @@ if [[ ! -f /var/lib/waydroid/waydroid.cfg ]]; then
 else
   "${elevate[@]}" /usr/bin/python3 "$here/waydroid/host-setup.py"
 fi
+"${elevate[@]}" /usr/bin/python3 "$here/waydroid/install-service-permission.py" "$(id -un)"
 /usr/bin/python3 "$here/waydroid/install-launchers.py"
 echo 'Ready: open Waydroid from the app launcher. Use Shut Down Waydroid to stop Android completely.'

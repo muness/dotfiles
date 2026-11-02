@@ -1,3 +1,8 @@
 #!/usr/bin/bash
 # Waydroid imports distribution Python modules, unavailable in mise Python.
+case "${1:-}:${2:-}" in
+  show-full-ui:*|first-launch:*|session:start|app:launch|app:intent)
+    /usr/bin/systemctl --no-ask-password start waydroid-container.service || exit "$?"
+    ;;
+esac
 exec /usr/bin/python3 /usr/bin/waydroid "$@"

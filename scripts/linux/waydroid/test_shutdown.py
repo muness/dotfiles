@@ -16,12 +16,12 @@ class ShutdownTests(unittest.TestCase):
     def runner(self, statuses):
         return Mock(side_effect=[subprocess.CompletedProcess([], status) for status in statuses])
 
-    def test_running_container_requires_privileged_stop_and_confirmation(self):
+    def test_running_container_uses_scoped_service_permission_and_confirmation(self):
         run = self.runner([0, 0, 0, 3])
         module.shutdown(run)
         commands = [call.args[0] for call in run.call_args_list]
         self.assertEqual(commands[0], ('/usr/bin/python3', '/usr/bin/waydroid', 'session', 'stop'))
-        self.assertEqual(commands[2], ('/usr/bin/pkexec', '/usr/bin/systemctl', 'stop', 'waydroid-container.service'))
+        self.assertEqual(commands[2], ('/usr/bin/systemctl', '--no-ask-password', 'stop', 'waydroid-container.service'))
         self.assertEqual(commands[3][1:3], ('is-active', '--quiet'))
 
     def test_already_stopped_needs_no_authentication(self):
@@ -29,9 +29,9 @@ class ShutdownTests(unittest.TestCase):
         module.shutdown(run)
         self.assertFalse(any(call.args[0][0] == '/usr/bin/pkexec' for call in run.call_args_list))
 
-    def test_cancelled_authentication_does_not_report_success(self):
-        with self.assertRaisesRegex(RuntimeError, 'cancelled'):
-            module.shutdown(self.runner([0, 0, 126]))
+    def test_denied_stop_does_not_report_success(self):
+        with self.assertRaisesRegex(RuntimeError, 'authorized'):
+            module.shutdown(self.runner([0, 0, 1]))
 
     def test_service_remaining_active_does_not_report_success(self):
         with self.assertRaisesRegex(RuntimeError, 'confirm'):

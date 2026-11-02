@@ -19,7 +19,8 @@ forced initialization or image upgrade is performed.
 ## Open and fully shut down Android
 
 Open **Waydroid** from the app launcher. To stop Android and its system container,
-choose **Shut Down Waydroid**. This may request Touch ID or a password. The
+choose **Shut Down Waydroid**. Normal starts and stops need no sudo, Touch ID,
+or password after the one-time service-permission installation. The
 Waydroid launcher also has a **Shut Down Completely** desktop action, where
 supported by the launcher. Closing the Android window with the window manager
 only hides it; the explicit shutdown launcher performs the complete stop.
@@ -30,12 +31,26 @@ To install or refresh only these user controls, without touching Android:
 scripts/linux/waydroid.sh --launchers-only
 ```
 
+For an existing installation, install the service permission and refresh the
+launchers (one graphical authentication prompt):
+
+```bash
+scripts/linux/waydroid.sh --service-controls-only
+```
+
+The polkit rule grants only the selected active local desktop user permission
+to start and stop `waydroid-container.service`. It does not grant permission for
+other services or for enabling/disabling units. The full installer includes this
+step. To revoke the permission, remove
+`/etc/polkit-1/rules.d/49-dotfiles-waydroid.rules` with administrator privileges.
+
 The installed `~/.local/bin/waydroid` wrapper and desktop launcher explicitly use
 `/usr/bin/python3`, because mise's Python cannot import the distribution's
 `dbus`, `gi` and `gbinder` modules. The wrapper also supports ordinary commands
-such as `waydroid status`. The shutdown control stops the session, asks polkit
-to stop `waydroid-container.service`, and checks that the service is inactive
-before showing a success notification. Cancellation or a failed stop produces
+such as `waydroid status`. Launch commands ensure the container service is
+started before starting Android. The shutdown control stops the session, uses
+the scoped service permission to stop `waydroid-container.service`, and checks
+that the service is inactive before showing a success notification. A denied or failed stop produces
 an error notification. It does not disable the service at boot.
 
 ## Pinned inputs and prerequisites
