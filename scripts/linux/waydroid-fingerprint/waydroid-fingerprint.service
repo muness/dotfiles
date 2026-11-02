@@ -1,0 +1,14 @@
+[Unit]
+Description=Touch ID bridge for Waydroid weak biometric App Lock
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+ExecStart=/usr/bin/python3 %h/.local/lib/waydroid-fingerprint/daemon.py
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+UMask=0077
+
+[Install]
+WantedBy=graphical-session.target
