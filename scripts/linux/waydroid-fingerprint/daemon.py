@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import signal
 import sys
+import time
 
 import dbus
 from dbus.mainloop.glib import DBusGMainLoop
@@ -19,6 +20,15 @@ from protocol import (CALLBACK, CANCEL, COMMON_HASH, FINGERPRINT, FINGERPRINT_HA
                       i32, i64, int_array, read_hat, read_int, sensor_props)
 
 LOG = logging.getLogger("waydroid-fingerprint")
+
+
+def binder_accessible(path="/dev/binder"):
+    try:
+        descriptor = os.open(path, os.O_RDWR | os.O_CLOEXEC)
+    except OSError:
+        return False
+    os.close(descriptor)
+    return True
 
 
 def append_bytes(message, data):
@@ -36,6 +46,8 @@ class FprintBackend:
 
     def start(self, callback):
         self.callback = callback
+        # fprintd exits when idle. Activation at bridge startup is insufficient.
+        self.bus.start_service_by_name("net.reactivated.Fprint")
         self.owner = self.bus.get_name_owner("net.reactivated.Fprint")
         manager = dbus.Interface(self.bus.get_object(self.owner, "/net/reactivated/Fprint/Manager"),
                                  "net.reactivated.Fprint.Manager")
@@ -94,10 +106,14 @@ class BinderObject:
         self.obj = bridge.sm.new_local_object(interface, self.handle)
         self.obj.set_stability(0x3f)
 
+    def authorized(self, req, code, flags):
+        return self.bridge.allowed(req)
+
     def handle(self, req, code, flags):
         try:
-            if not self.bridge.allowed(req):
-                LOG.warning("Rejected Binder caller uid=%s pid=%s", req.sender_euid(), req.sender_pid())
+            if not self.authorized(req, code, flags):
+                LOG.warning("Rejected Binder caller uid=%s pid=%s interface=%s code=%s flags=%s",
+                            req.sender_euid(), req.sender_pid(), req.interface(), code, flags)
                 return None, -13
             interface = req.interface()
             if isinstance(interface, bytes):
@@ -126,6 +142,14 @@ class Cancellation(BinderObject):
     def __init__(self, session, operation):
         self.session, self.operation = session, operation
         super().__init__(session.bridge, CANCEL, COMMON_HASH)
+
+    def authorized(self, req, code, flags):
+        # Binder omits sender PID on one-way calls. This capability is issued
+        # only to the verified system_server for one particular operation; its
+        # sole action is cancellation, never authentication or enrollment.
+        return (super().authorized(req, code, flags)
+                or (req.sender_euid() == 1000 and req.sender_pid() == 0
+                    and code == 1 and flags == 1))
 
     def dispatch(self, reader, code, reply):
         if code == 1:
@@ -165,7 +189,8 @@ class Session(BinderObject):
     def emit(self, event, *args):
         if self.closed:
             return
-        LOG.info("Android operation: %s", event)
+        LOG.info("Android operation: %s%s", event,
+                 f" code={args[0]}" if event == "error" and args else "")
         codes = {"error": (4, lambda v: i32(v) + i32(0)),
                  "lockout": (8, i64), "failed": (7, lambda: b""),
                  "interaction": (11, lambda: b""),
@@ -265,8 +290,6 @@ class Bridge(BinderObject):
     def __init__(self, state):
         DBusGMainLoop(set_as_default=True)
         self.bus = dbus.SystemBus()
-        # Activate fprintd before using its unique bus owner.
-        self.bus.start_service_by_name("net.reactivated.Fprint")
         self.sm = gbinder.ServiceManager("/dev/binder", "aidl6", "aidl3")
         self.enrollment = Enrollment(state)
         self.budget = FailureBudget()
@@ -326,6 +349,10 @@ def main():
     args = parser.parse_args()
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
     os.umask(0o077)
+    if not binder_accessible():
+        LOG.info("Waiting for Waydroid to make /dev/binder accessible")
+        while not binder_accessible():
+            time.sleep(1)
     bridge = Bridge(args.state)
     loop = GLib.MainLoop()
     bridge.sm.add_presence_handler(bridge.presence)

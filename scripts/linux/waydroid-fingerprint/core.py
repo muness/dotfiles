@@ -1,5 +1,6 @@
 """Authentication lifecycle, independent of D-Bus and Binder for failure testing."""
 import json
+import logging
 import os
 from pathlib import Path
 import secrets
@@ -80,6 +81,7 @@ class Operation:
         try:
             self.backend.start(self.status)
         except Exception:
+            logging.getLogger("waydroid-fingerprint").exception("Fingerprint backend could not start")
             self.finish("error", 1)
 
     def status(self, status, done=True):

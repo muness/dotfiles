@@ -3,6 +3,7 @@ from pathlib import Path
 import struct
 import tempfile
 import unittest
+from unittest.mock import MagicMock, patch
 import importlib.util
 
 from core import Challenge, Enrollment, FailureBudget, Operation
@@ -30,6 +31,60 @@ class Backend:
 
 
 class LifecycleTests(unittest.TestCase):
+    def test_oneway_cancellation_accepts_missing_pid_only_on_cancellation_capability(self):
+        import daemon
+        from types import SimpleNamespace
+        bridge = SimpleNamespace(allowed=lambda req: False)
+        cancellation = object.__new__(daemon.Cancellation)
+        cancellation.bridge = bridge
+        ordinary = object.__new__(daemon.BinderObject)
+        ordinary.bridge = bridge
+        req = SimpleNamespace(sender_euid=lambda: 1000, sender_pid=lambda: 0)
+        self.assertTrue(cancellation.authorized(req, 1, 1))
+        self.assertFalse(ordinary.authorized(req, 1, 1))
+        self.assertFalse(cancellation.authorized(req, 4, 1))
+        self.assertFalse(cancellation.authorized(req, 1, 0))
+        req.sender_euid = lambda: 10001
+        self.assertFalse(cancellation.authorized(req, 1, 1))
+
+    def test_startup_waits_for_binder_permission_without_opening_hal(self):
+        import daemon
+        for error in (FileNotFoundError(), PermissionError(), OSError()):
+            with patch.object(daemon.os, 'open', side_effect=error):
+                self.assertFalse(daemon.binder_accessible())
+        with patch.object(daemon.os, 'open', return_value=42), patch.object(daemon.os, 'close') as close:
+            self.assertTrue(daemon.binder_accessible())
+            close.assert_called_once_with(42)
+
+    def test_backend_reactivates_fprintd_after_idle_exit(self):
+        import daemon
+        device = MagicMock()
+        device.ListEnrolledFingers.return_value = ['right-thumb']
+        manager = MagicMock()
+        manager.GetDefaultDevice.return_value = '/device'
+        bus = MagicMock()
+        running = [False]
+        def activate(name):
+            running[0] = True
+        def owner(name):
+            if not running[0]:
+                raise RuntimeError('fprintd exited while idle')
+            return ':1.42'
+        bus.start_service_by_name.side_effect = activate
+        bus.get_name_owner.side_effect = owner
+        bus.get_object.side_effect = lambda name, path: device if path == '/device' else manager
+        with patch.object(daemon.dbus, 'Interface', side_effect=lambda obj, interface: obj):
+            for _ in range(2):
+                running[0] = False
+                backend = daemon.FprintBackend(bus)
+                backend.start(lambda *args: None)
+                self.assertTrue(backend.verifying)
+                backend.stop()
+                self.assertFalse(backend.claimed)
+        self.assertEqual(bus.start_service_by_name.call_count, 2)
+        self.assertEqual(device.VerifyStart.call_count, 2)
+        self.assertEqual(device.Release.call_count, 2)
+
     def test_software_credential_token_zero_signature_is_structurally_valid(self):
         class Reader:
             def __init__(self, data):
@@ -134,7 +189,8 @@ class LifecycleTests(unittest.TestCase):
 
     def test_claim_failure_cleans_up(self):
         self.backend.fail = True
-        self.operation()
+        with self.assertLogs('waydroid-fingerprint', level='ERROR'):
+            self.operation()
         self.assertEqual(self.events, [("error", 1)])
         self.assertEqual(self.backend.stopped, 1)
 

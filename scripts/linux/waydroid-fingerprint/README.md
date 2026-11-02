@@ -92,3 +92,13 @@ match despite recording it; future enrollment progress needs correction.
 Enrollment MAC bytes are zero-filled on this image; they are not used as proof.
 The bridge trusts the restricted Android caller and its fresh enrollment challenge,
 and always requires an actual Linux fingerprint match.
+
+## Lifecycle fixes — 2026-11-02
+
+The host daemon now waits for Binder access instead of crash-looping before
+Waydroid starts. Each scan activates fprintd before resolving its unique D-Bus
+owner, because fprintd can exit while idle. One-way cancellation calls may have
+PID zero; they are accepted only on the cancellation capability issued to the
+verified system_server, only from uid 1000, and only for the cancel transaction.
+Authentication and enrollment retain their full caller checks. Backend startup
+exceptions and numeric HAL errors are logged without token or credential data.
