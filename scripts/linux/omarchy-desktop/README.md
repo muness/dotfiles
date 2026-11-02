@@ -51,6 +51,25 @@ The separate `../omarchy-host-setup.py` adds fingerprint-first login with passwo
 
 ## Login and verification
 
+Public Wi-Fi login pages use the installed `capnet-assist`. The user setup also
+installs `omarchy-captive-portal.service`, started through Hyprland XDG autostart
+and stopped with the graphical session. It watches NetworkManager connectivity
+and opens the assistant once when a captive portal is detected, including one
+already present at login. Offline/limited connectivity does not open a window;
+repeated portal notifications do not reopen a dismissed assistant.
+
+To install or update this listener without resetting desktop configuration:
+
+```sh
+python3 ~/dotfiles/scripts/linux/omarchy-desktop/install-captive-portal.py
+systemctl --user status omarchy-captive-portal.service
+```
+
+It requires `python-gobject`, `libnm`, and `capnet-assist` (desktop package
+dependencies). For a portal missed by NetworkManager, launch
+`io.elementary.capnet-assist` manually. Listener logs are available with
+`journalctl --user -u omarchy-captive-portal.service`.
+
 Log out normally and choose **Omarchy** at COSMIC Greeter. No greeter restart or forced logout is performed by these scripts. `Super+Return` opens Foot, `Super+B` the existing default browser, `Super+E` Nautilus, and `Super+Space` the Omarchy menu. Use the system menu to log out and select COSMIC again.
 
 Check password and fingerprint authentication separately, including after resume. COSMIC login and lock offer fingerprint authentication before password; after three failed scans or a ten-second timeout, password authentication uses the original stack. Omarchy's lock has separate password/fingerprint flows. Fingerprint success does not supply a password to decrypt a password-protected login keyring.

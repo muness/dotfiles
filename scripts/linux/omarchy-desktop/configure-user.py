@@ -114,6 +114,7 @@ export OMARCHY_SCREENSHOT_EDITOR=omarchy-capture-editor
     subprocess.run([str(runtime / 'bin/omarchy-theme-set'), 'Tokyo Night'], env=env, check=True)
     subprocess.run([str(runtime / 'bin/omarchy-theme-set-foot')], env=env, check=True)
     subprocess.run(['/usr/bin/Hyprland', '--verify-config', '-c', str(hypr)], env=env, check=True)
+    subprocess.run(['/usr/bin/python3', str(Path(__file__).with_name('install-captive-portal.py'))], check=True)
     print('Omarchy configured. Select Omarchy at COSMIC Greeter after logging out.')
 
 
