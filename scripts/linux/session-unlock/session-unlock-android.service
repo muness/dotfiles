@@ -1,0 +1,10 @@
+[Unit]
+Description=Touch ID for Waydroid credential prompts using the 1Password vault
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/python3 %h/.local/lib/session-unlock/android-unlock.py --watch
+Restart=no
+KillMode=process
+UMask=0077
+LimitCORE=0
