@@ -51,31 +51,67 @@ The separate `../omarchy-host-setup.py` adds fingerprint-first login with passwo
 
 ## Login and verification
 
-Public Wi-Fi login pages use the installed `capnet-assist`. The user setup also
-installs `omarchy-captive-portal.service`, started through Hyprland XDG autostart
-and stopped with the graphical session. It watches each Wi-Fi device separately,
-so a working USB tether cannot hide a captive portal. It obtains the login
-redirect through the Wi-Fi interface and opens the assistant once, including one
-already present at login. Offline/limited connectivity does not open a window;
-repeated portal notifications do not reopen a dismissed assistant.
+Public Wi-Fi sign-in uses upstream [Foyer 0.1.0](https://github.com/tektum/foyer)
+plus the user-owned `omarchy-captive-portal.service`. Foyer is installed from a
+checksum-pinned Linux ARM64/AMD64 release into `~/.local/libexec`. It launches
+an isolated incognito Chrome/Chromium window through a local SOCKS proxy.
+Both DNS and portal connections bind to the selected Wi-Fi interface, leaving
+system DNS, routes, and the normal browser profile alone.
 
-To install or update this listener without resetting desktop configuration:
+The listener watches each Wi-Fi device separately. A working USB tether cannot
+hide a detected portal or complete Wi-Fi sign-in. A pinned tray icon titled
+**Wi-Fi sign-in needed: NETWORK** stays available after closing the browser and
+through temporary limited/unknown connectivity. Clicking it focuses the existing
+window or opens another after it has closed. It clears when that Wi-Fi has full
+connectivity with no family still reporting a portal, disconnects, or changes
+active connection. While pending, NetworkManager is asked to recheck every ten
+seconds; its machine-wide answer is not used to retire the Wi-Fi warning.
+
+The **Wi-Fi Sign-in** app launcher also opens the active Wi-Fi's sign-in window
+manually, including when automatic detection missed a portal. CLI equivalents:
 
 ```sh
-python3 ~/dotfiles/scripts/linux/omarchy-desktop/install-captive-portal.py
+~/.local/libexec/omarchy-captive-portal --open
+~/.local/libexec/omarchy-captive-portal --status
+```
+
+To install or update without resetting desktop configuration:
+
+```sh
+/usr/bin/python3 ~/dotfiles/scripts/linux/omarchy-desktop/install-captive-portal.py
 systemctl --user status omarchy-captive-portal.service
 ```
 
-It requires `python-gobject`, `libnm`, `curl`, and `capnet-assist` (desktop package
-dependencies). For a portal missed by NetworkManager, launch
-`io.elementary.capnet-assist` manually. Listener logs are available with
-`journalctl --user -u omarchy-captive-portal.service`.
+Installation downloads and verifies Foyer before changing the listener. It adds
+only the Wi-Fi sign-in tray pin to the existing shell layout, keeping a
+`shell.json.before-wifi-signin` backup. It starts via Hyprland XDG autostart and
+stops with the graphical session. No root authentication or shell restart is
+needed. Dependencies: `python-gobject`, `python-dbus`, `libnm`, NetworkManager,
+and an installed Chromium-family browser (Google Chrome on this machine).
+Listener and Foyer logs: `journalctl --user -u omarchy-captive-portal.service`.
 
-Log out normally and choose **Omarchy** at COSMIC Greeter. No greeter restart or forced logout is performed by these scripts. `Super+Return` opens Foot, `Super+B` the existing default browser, `Super+E` Nautilus, and `Super+Space` the Omarchy menu. Use the system menu to log out and select COSMIC again.
+Regression checks:
 
-Check password and fingerprint authentication separately, including after resume. COSMIC login and lock offer fingerprint authentication before password; after three failed scans or a ten-second timeout, password authentication uses the original stack. Omarchy's lock has separate password/fingerprint flows. Fingerprint success does not supply a password to decrypt a password-protected login keyring.
+```sh
+/usr/bin/python3 -m unittest discover -s scripts/linux/omarchy-desktop -p test_captive_portal.py -v
+```
 
-The sleep-lock monitor starts only from Omarchy autostart, is stopped with `graphical-session.target`, and is not globally enabled. Verify that it and the Omarchy shell are stopped after returning to COSMIC. Test portals/screen sharing, notifications, built-in and external displays, charger changes and suspend/resume on the real session. Config parsing and nested UI checks do not qualify all these hardware paths.
+Verified on 2026-11-04: Foyer's real proxy returned HTTP/HTTPS 204 through
+`wld0`; syscall tracing showed DNS to the airport resolver and outbound sockets
+bound to Wi-Fi. A negative check bound to `lo` timed out despite working system
+internet, rejecting a proxy that silently falls back to the default interface.
+Real Chrome launch, repeat-click focus without duplicate windows, and clean
+window closure were exercised. The current airport session was already
+authenticated; a fresh Boingo consent flow with USB tethering still needs a
+live captive-network check. Tests cover pending state despite unrelated full
+connectivity, browser exit/reopening, limited/unknown states, and connection
+switches.
+
+Log out normally and choose **Omarchy** at COSMIC Greeter. No greeter restart or forced logout is performed by these scripts. `Super+Return` opens Foot, `Super+B` the existing default browser, `Super+E` Nautilus, and `Super+Space` the Omarchy menu. The COSMIC desktop is not installed; COSMIC Greeter remains the login screen.
+
+Check password and fingerprint authentication separately, including after resume. COSMIC Greeter offers fingerprint authentication before password; after three failed scans or a ten-second timeout, password authentication uses the original stack. Omarchy's lock has separate password/fingerprint flows. Fingerprint success does not supply a password to decrypt a password-protected login keyring.
+
+The sleep-lock monitor starts only from Omarchy autostart, is stopped with `graphical-session.target`, and is not globally enabled. Test portals/screen sharing, notifications, built-in and external displays, charger changes and suspend/resume on the real session. Config parsing and nested UI checks do not qualify all these hardware paths.
 
 The HID change needs a reboot to prevent the startup race. RAM-sized zram is a logical capacity, not reserved physical memory; zstd and priority 100 remain in use, ahead of the existing priority-10 disk swap. Earlyoom still intervenes independently of free swap.
 

@@ -1,0 +1,5 @@
+#!/bin/bash
+# omarchy:summary=Open or reopen interface-bound Wi-Fi sign-in
+set -euo pipefail
+systemctl --user start omarchy-captive-portal.service
+exec "$HOME/.local/libexec/omarchy-captive-portal" --open
