@@ -144,6 +144,8 @@ exec pkexec /usr/bin/pacman -Syu''')
     script('omarchy-desktop-session', 'exec uwsm start -g -1 -e -D Hyprland hyprland.desktop')
     script('omarchy-desktop-autostart', 'if [[ -n ${UWSM_FINALIZE_VARNAMES:-} ]]; then\n  uwsm finalize OMARCHY_PATH || exit\nfi\nsystemctl --user start omarchy-desktop-sleep-lock.service\nexec omarchy-launch-shell')
     script('omarchy-capture-editor', 'exec satty --filename "$1"')
+    screenshot = Path(__file__).resolve().parent / 'bin/omarchy-capture-screenshot'
+    script('omarchy-capture-screenshot', screenshot.read_text().removeprefix('#!/usr/bin/env bash\n'))
     write(runtime / 'default/hypr/autostart.lua', '''hl.on("hyprland.start", function()
   hl.exec_cmd("omarchy-desktop-autostart")
   hl.exec_cmd(o.launch("omarchy-hyprland-monitor-watch"))

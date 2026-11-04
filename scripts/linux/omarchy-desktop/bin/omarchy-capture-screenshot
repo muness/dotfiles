@@ -1,0 +1,77 @@
+#!/usr/bin/env bash
+# omarchy:summary=Capture a screenshot and copy it to the clipboard
+# omarchy:group=capture
+set -euo pipefail
+
+# New upstream releases use omasnap, which is not available on this ARM host.
+# Keep the native tool when present and use packaged Wayland tools otherwise.
+if command -v omasnap >/dev/null 2>&1; then
+  args=(--notify)
+  for arg in "$@"; do
+    case "$arg" in
+      copy) args+=(--copy) ;;
+      save) args+=(--save) ;;
+      slurp) ;;
+      *) args+=("$arg") ;;
+    esac
+  done
+  export OMASNAP_SCREENSHOT_DIR="${OMASNAP_SCREENSHOT_DIR:-${OMARCHY_SCREENSHOT_DIR:-${XDG_PICTURES_DIR:-$HOME/Pictures}/Screenshots}}"
+  exec omasnap "${args[@]}"
+fi
+
+mode=smart
+copy=true
+save=true
+for arg in "$@"; do
+  case "$arg" in
+    smart|region|windows|fullscreen) mode=$arg ;;
+    copy) save=false ;;
+    save) copy=false ;;
+    slurp) ;;
+    *) notify-send 'Screenshot failed' "Unsupported screenshot option: $arg"; exit 2 ;;
+  esac
+done
+
+geometry=
+if [[ $mode == fullscreen ]]; then
+  output=$(hyprctl -j monitors | jq -er '.[] | select(.focused == true) | .name')
+else
+  # Cancellation is normal; no notification or empty capture follows Escape.
+  if [[ $mode == smart || $mode == windows ]]; then
+    workspace=$(hyprctl -j monitors | jq -er '.[] | select(.focused == true) | .activeWorkspace.id')
+    rectangles=$(hyprctl -j clients | jq -r --argjson ws "$workspace" \
+      '.[] | select(.workspace.id == $ws and .hidden != true) | "\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"')
+    selection=(-d)
+    [[ $mode != windows ]] || selection=(-r)
+    geometry=$(slurp "${selection[@]}" <<< "$rectangles") || exit 0
+  else
+    geometry=$(slurp -d) || exit 0
+  fi
+  [[ -n $geometry ]] || exit 0
+fi
+
+umask 077
+temporary=$(mktemp --suffix=.png)
+trap 'rm -f -- "$temporary"' EXIT
+if [[ $mode == fullscreen ]]; then
+  grim -o "$output" "$temporary"
+else
+  grim -g "$geometry" "$temporary"
+fi
+
+if $save; then
+  pictures=$(xdg-user-dir PICTURES 2>/dev/null) || pictures=$HOME/Pictures
+  directory=${OMASNAP_SCREENSHOT_DIR:-${OMARCHY_SCREENSHOT_DIR:-$pictures/Screenshots}}
+  mkdir -p -- "$directory"
+  destination=$(mktemp --tmpdir="$directory" "Screenshot_$(date +%Y-%m-%d_%H-%M-%S)_XXXXXX.png")
+  cp -- "$temporary" "$destination"
+fi
+if $copy; then
+  wl-copy --type image/png < "$temporary"
+fi
+if $save; then
+  notify-send 'Screenshot saved' "$destination"
+  printf '%s\n' "$destination"
+else
+  notify-send 'Screenshot copied' 'Paste the image with Ctrl+V.'
+fi
