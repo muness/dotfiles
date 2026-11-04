@@ -8,6 +8,7 @@ import signal
 import socket
 import subprocess
 import sys
+from urllib.parse import urlsplit
 
 import dbus
 import dbus.service
@@ -27,12 +28,26 @@ FOYER = Path.home() / '.local/libexec/foyer-0.1.0'
 def launch_assistant(device, uri):
     """Bind all portal DNS and connections, not only the initial probe."""
     iface = device.get_iface()
+    # Resolve the HTTP interception on Wi-Fi before opening Chrome. Most
+    # portals then provide a real HTTPS login URL rather than a probe page.
+    try:
+        result = subprocess.run(['/usr/bin/curl', '--interface', iface, '--noproxy', '*',
+                                 '--max-time', '5', '--silent', '--output', '/dev/null',
+                                 '--write-out', '%{redirect_url}', uri],
+                                capture_output=True, text=True, timeout=6, check=True)
+        redirect = result.stdout.strip()
+        if urlsplit(redirect).scheme in ('http', 'https') and urlsplit(redirect).netloc:
+            uri = redirect
+    except (OSError, ValueError, subprocess.SubprocessError):
+        pass
     directory = Path(os.environ.get('XDG_RUNTIME_DIR', f'/run/user/{os.getuid()}')) / 'omarchy-captive'
     directory.mkdir(mode=0o700, exist_ok=True)
     config = directory / f'{iface}.toml'
     dns_command = shlex.join(['/usr/bin/nmcli', '-g', 'IP4.DNS', 'device', 'show', iface])
+    browser_command = shlex.join([str(Path.home() / '.local/libexec/omarchy-portal-browser'), uri])
     config.write_text(f'interface = {json.dumps(iface)}\nbind-device = true\n'
-                      f'dhcp-dns = {json.dumps(dns_command)}\nstart-url = {json.dumps(uri)}\n')
+                      f'dhcp-dns = {json.dumps(dns_command)}\nstart-url = {json.dumps(uri)}\n'
+                      f'browser = {json.dumps(browser_command)}\n')
     return subprocess.Popen([str(FOYER), '-config', str(config)], start_new_session=True)
 
 
@@ -173,7 +188,13 @@ class Tray(dbus.service.Object):
             targets = [(d, w) for d, (w, _signals) in self.watches.items()
                        if d.get_state() == NM.DeviceState.ACTIVATED]
         for _device, watch in targets:
-            watch.open()
+            states = [_device.get_connectivity(f) for f in (socket.AF_INET, socket.AF_INET6)]
+            if watch.pending or NM.ConnectivityState.FULL not in states:
+                watch.open()
+            else:
+                subprocess.Popen(['/usr/bin/notify-send', '--app-name=Wi-Fi Sign-in',
+                                  'Wi-Fi is online',
+                                  _device.get_active_connection().get_id() + ' has internet access. No sign-in is needed.'])
 
     @dbus.service.method(CONTROL, out_signature='s')
     def Status(self):

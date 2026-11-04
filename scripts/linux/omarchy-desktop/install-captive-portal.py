@@ -17,6 +17,9 @@ def main():
     helper.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(Path(__file__).with_name('captive-portal.py'), helper)
     helper.chmod(0o755)
+    browser = helper.with_name('omarchy-portal-browser')
+    shutil.copyfile(Path(__file__).with_name('portal-browser.sh'), browser)
+    browser.chmod(0o755)
     unit = home / '.config/systemd/user/omarchy-captive-portal.service'
     unit.parent.mkdir(parents=True, exist_ok=True)
     unit.write_text('''[Unit]

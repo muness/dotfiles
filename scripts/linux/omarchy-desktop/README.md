@@ -68,7 +68,9 @@ active connection. While pending, NetworkManager is asked to recheck every ten
 seconds; its machine-wide answer is not used to retire the Wi-Fi warning.
 
 The **Wi-Fi Sign-in** app launcher also opens the active Wi-Fi's sign-in window
-manually, including when automatic detection missed a portal. CLI equivalents:
+manually, including when automatic detection missed a portal. If Wi-Fi already
+has full connectivity, it reports that no sign-in is needed instead of opening
+a raw probe page. CLI equivalents:
 
 ```sh
 ~/.local/libexec/omarchy-captive-portal --open
@@ -101,7 +103,14 @@ Verified on 2026-11-04: Foyer's real proxy returned HTTP/HTTPS 204 through
 bound to Wi-Fi. A negative check bound to `lo` timed out despite working system
 internet, rejecting a proxy that silently falls back to the default interface.
 Real Chrome launch, repeat-click focus without duplicate windows, and clean
-window closure were exercised. The current airport session was already
+window closure were exercised. A later browser-content regression exposed
+Chrome 157 blocking the proxy itself under Foyer's DNS rule, followed by an
+HTTPS-only interstitial for the HTTP probe. The disposable browser wrapper now
+excludes `127.0.0.1` from the DNS rule and disables HTTPS upgrading/Incognito
+HTTPS-first only for that temporary profile. Certificate verification remains
+in effect. A real headless Chrome run through the installed Foyer wrapper
+verified rendered probe content with neither error. The listener resolves
+portal redirects on Wi-Fi before launching, preferring the actual login URL. The current airport session was already
 authenticated; a fresh Boingo consent flow with USB tethering still needs a
 live captive-network check. Tests cover pending state despite unrelated full
 connectivity, browser exit/reopening, limited/unknown states, and connection

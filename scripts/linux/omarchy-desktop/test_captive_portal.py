@@ -99,7 +99,8 @@ class PortalTests(unittest.TestCase):
 
     def test_config_binds_browser_and_dns_to_wifi_instead_of_default_interface(self):
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, XDG_RUNTIME_DIR=directory):
-            with patch.object(portal.subprocess, 'Popen') as popen:
+            with patch.object(portal.subprocess, 'Popen') as popen, patch.object(
+                    portal.subprocess, 'run', return_value=SimpleNamespace(stdout='')):
                 portal.launch_assistant(self.device, 'http://example.test/check?x="quoted"')
             args = popen.call_args.args[0]
             config = tomllib.loads(Path(args[2]).read_text())
@@ -107,7 +108,18 @@ class PortalTests(unittest.TestCase):
         self.assertTrue(config['bind-device'])
         self.assertEqual(config['dhcp-dns'], '/usr/bin/nmcli -g IP4.DNS device show wld0')
         self.assertEqual(config['start-url'], 'http://example.test/check?x="quoted"')
+        self.assertIn('omarchy-portal-browser', config['browser'])
         self.assertTrue(popen.call_args.kwargs['start_new_session'])
+
+    def test_captive_redirect_is_resolved_on_wifi_before_browser_launch(self):
+        with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, XDG_RUNTIME_DIR=directory):
+            with patch.object(portal.subprocess, 'Popen') as popen, patch.object(
+                    portal.subprocess, 'run', return_value=SimpleNamespace(stdout='https://portal.test/login')) as probe:
+                portal.launch_assistant(self.device, 'http://probe.test')
+            config = tomllib.loads(Path(popen.call_args.args[0][2]).read_text())
+        self.assertIn('wld0', probe.call_args.args[0])
+        self.assertEqual(config['start-url'], 'https://portal.test/login')
+        self.assertIn('https://portal.test/login', config['browser'])
 
     def test_tray_retains_click_action_after_browser_exit_and_hides_after_wifi_success(self):
         tray = portal.Tray.__new__(portal.Tray)
@@ -132,6 +144,16 @@ class PortalTests(unittest.TestCase):
         tray.Open()
         self.launch.assert_called_once()
         self.assertFalse(self.watch.pending)
+
+    def test_manual_launcher_reports_online_instead_of_opening_probe_page(self):
+        tray = portal.Tray.__new__(portal.Tray)
+        tray.watches = {self.device: (self.watch, [])}
+        self.device.ip4 = NM.ConnectivityState.FULL
+        self.watch.changed(self.device)
+        with patch.object(portal.subprocess, 'Popen') as notify:
+            tray.Open()
+        self.launch.assert_not_called()
+        self.assertIn('Wi-Fi is online', notify.call_args.args[0])
 
 
 if __name__ == '__main__':
