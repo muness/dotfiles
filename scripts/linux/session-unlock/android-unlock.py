@@ -82,12 +82,18 @@ def fresh_fingerprint():
         if response != Gtk.ResponseType.OK and not outcomes:
             outcomes.append('cancelled')
     finally:
-        backend.stop()
         if GLib.MainContext.default().find_source_by_id(timer):
             GLib.source_remove(timer)
         if GLib.MainContext.default().find_source_by_id(begin_timer):
             GLib.source_remove(begin_timer)
+        display = dialog.get_display()
         dialog.destroy()
+        # The watcher blocks outside GTK between prompts. Send the Wayland
+        # destroy requests before releasing the reader or waiting for Android.
+        try:
+            display.flush()
+        finally:
+            backend.stop()
     if not outcomes or outcomes[0] != 'verify-match':
         reason = outcomes[0] if outcomes else 'no result'
         raise UnlockError(f'Touch ID did not authorize unlock ({reason}). No PIN was submitted.')
