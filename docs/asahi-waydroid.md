@@ -108,3 +108,56 @@ shellcheck scripts/linux/waydroid.sh scripts/linux/waydroid/launch
 A fresh end-to-end installation and an interactive shutdown remain manual
 acceptance checks. The repository checks must not interrupt an active Android
 session just to exercise its shutdown control.
+
+On 2026-11-05, the user confirmed that the Waydroid Authenticator flow
+worked with Touch ID for the Android PIN prompt after number matching.
+
+## Ika trial on Asahi (2026-11-05)
+
+[Ika 261101](https://github.com/DesktopECHO/ika/releases/tag/261101) was tried
+alongside Waydroid as a possible replacement for Microsoft Authenticator. Its
+native Arch ARM64 packages booted Android in a Cuttlefish VM on the 16 KiB
+Aurora kernel `7.2.11-14-1.536-ARCH`. The installer enables
+`cuttlefish-host-resources.service` and adds the user to `kvm`, `render`,
+and `cvdnetwork`. A new login session needs those groups before launch.
+
+- The host rebooted abruptly during installation. The first `ika start` had
+  already exited because the groups were missing from the active session.
+  The install log ended shortly after loading `vhost_net` and `vhost_vsock`.
+  No panic trace survived, so the cause is unknown.
+- The next start found an incomplete VM disk. Moving it aside allowed a fresh
+  VM to boot, and the old directory was later moved to Trash.
+- Google sign-in attempts coincided with repeated host-side `run_cvd`
+  aborts while Linux stayed up. A run using `guest_swiftshader` also aborted
+  after opening Play Store. The first failing component is unknown, and
+  Authenticator was never validated in Ika.
+- During the trial, the ChatGPT desktop window repeatedly reloaded. A kernel
+  trace caught a Chromium realtime audio thread receiving `SIGKILL`. The
+  leading explanation was that Cuttlefish's login rule let desktop processes
+  request realtime priority even though they had a zero realtime CPU budget.
+  Ika was removed, and the inherited realtime privilege was cleared from
+  affected desktop processes. See [Fix ChatGPT Linux GUI restarts](thread://01a1ac70-884e-7cd3-9ce0-80537055f337?hostId=local).
+- The [release history](https://github.com/DesktopECHO/ika/releases) and
+  [GitHub Actions](https://github.com/DesktopECHO/ika/actions) had no newer
+  Arch ARM64 package or downloadable CI build at the time. No public issue
+  or PR confirmed a fix for this crash.
+
+Keep using Waydroid for Authenticator and revisit Ika after a newer Arch ARM64
+release. Try Google sign-in before moving any Authenticator accounts. If the
+VM aborts again, copy `~/ika/cuttlefish/instances/cvd-1/logs/launcher.log`
+before restarting so the next launch does not overwrite the failing run.
+
+### Realtime scheduling on the next trial
+
+Inspect the new host package for `/etc/security/limits.d/1_cuttlefish.conf`.
+If it still grants `rtprio` to `@cvdnetwork`, omit those two lines from the
+package before installing. Keep the group and its `nofile` limits. Treat an
+upgrade as a fresh check since it could restore the login rule.
+
+Try Ika with ordinary scheduling first. After a fresh login, check
+`/proc/<pid>/limits` for the ChatGPT and Chrome processes. A positive
+`Max realtime priority` alongside a zero `Max realtime timeout` is the
+combination to avoid. If the VM actually needs realtime scheduling, grant
+priority and a finite CPU-time budget only to its host processes through a
+system service that runs them as an unprivileged user. Verify the limits
+on the actual VM processes and on the desktop apps before using that setup.
