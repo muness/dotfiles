@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Resolve stable native binaries from the vendors' HTTPS Debian indexes."""
+"""Resolve stable native binaries from vendor Debian indexes and GitHub releases."""
 
 import argparse
 import json
@@ -25,6 +25,30 @@ VENDORS = {
     ),
 }
 ARCHES = {"aarch64": "arm64", "x86_64": "amd64"}
+
+
+def resolve_codex(architecture, index):
+    release = json.loads(index)
+    tag = release.get("tag_name", "")
+    match = re.fullmatch(r"rust-v(\d+(?:\.\d+)+)", tag)
+    if not match or release.get("draft") or release.get("prerelease"):
+        raise ValueError("Expected a stable Codex release")
+    name = f"codex-package-{architecture}-unknown-linux-musl.tar.zst"
+    assets = [a for a in release.get("assets", []) if a.get("name") == name]
+    if len(assets) != 1:
+        raise ValueError(f"Expected one Codex package asset: {name}")
+    asset = assets[0]
+    digest = asset.get("digest") or ""
+    url = asset.get("browser_download_url", "")
+    size = asset.get("size")
+    if (not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", digest)
+            or url != f"https://github.com/openai/codex/releases/download/{tag}/{name}"
+            or type(size) is not int or size <= 0):
+        raise ValueError("Invalid Codex release asset metadata")
+    version = match.group(1)
+    return dict(app="codex", package="openai-codex-bin", architecture=architecture,
+                version=version, pkgver=version, pkgrel="1", url=url,
+                sha256=digest[7:].lower(), size=size)
 
 
 def resolve_browseros(architecture, index):
@@ -110,7 +134,7 @@ def resolve(app, architecture, index):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("app", choices=[*VENDORS, "browseros"])
+    parser.add_argument("app", choices=[*VENDORS, "browseros", "codex"])
     parser.add_argument("architecture", choices=ARCHES)
     parser.add_argument("--index-file", type=Path, help="Use a saved vendor index for inspection")
     parser.add_argument("--tsv", action="store_true")
@@ -118,7 +142,9 @@ def main():
     if args.index_file:
         index = args.index_file.read_text()
     else:
-        if args.app == "browseros":
+        if args.app == "codex":
+            url = "https://api.github.com/repos/openai/codex/releases/latest"
+        elif args.app == "browseros":
             url = "https://api.github.com/repos/browseros-ai/BrowserOS/releases?per_page=100"
         else:
             base = VENDORS[args.app][0]
@@ -128,7 +154,12 @@ def main():
              "--max-time", "30", "--proto", "=https", "--proto-redir", "=https", url],
             text=True,
         )
-    release = resolve_browseros(args.architecture, index) if args.app == "browseros" else resolve(args.app, args.architecture, index)
+    if args.app == "codex":
+        release = resolve_codex(args.architecture, index)
+    elif args.app == "browseros":
+        release = resolve_browseros(args.architecture, index)
+    else:
+        release = resolve(args.app, args.architecture, index)
     if args.tsv:
         print("\t".join(str(release[k]) for k in ("package", "version", "pkgver", "pkgrel", "url", "sha256", "size")))
     else:

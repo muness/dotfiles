@@ -165,8 +165,14 @@ Update them separately from repository packages:
 ~/dotfiles/scripts/linux/vendor-apps.sh --check  # preview vendor package changes
 ~/dotfiles/scripts/linux/vendor-apps.sh         # full Arch upgrade, newer vendor apps
 ~/dotfiles/scripts/linux/vendor-apps.sh chrome  # update only Chrome
+~/dotfiles/scripts/linux/vendor-apps.sh codex   # update only Codex CLI
 ~/dotfiles/scripts/linux/check-desktop-updates.sh  # vendors, Tether, Aurora and Omarchy source
 ```
+
+Codex CLI is also included in vendor checks and updates as `openai-codex-bin`.
+It uses the latest stable official `openai/codex` GitHub release, verifies the
+asset SHA256, and preserves the complete native bundle and its helper binaries
+on ARM64 and x86_64. It is separate from the ChatGPT desktop package.
 
 The updater builds as your user, then uses pkexec for pacman with graphical
 polkit authentication. Cached archives,

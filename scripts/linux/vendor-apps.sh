@@ -12,9 +12,9 @@ while (($#)); do
     --download-only) mode=download ;;
     --build-only) mode=build ;;
     --force) force=1 ;;
-    chatgpt|chrome|claude|browseros) apps+=("$1") ;;
+    chatgpt|chrome|claude|browseros|codex) apps+=("$1") ;;
     --help|-h)
-      echo 'Usage: vendor-apps.sh [--check|--dry-run|--download-only|--build-only] [--force] [chatgpt|chrome|claude|browseros]'
+      echo 'Usage: vendor-apps.sh [--check|--dry-run|--download-only|--build-only] [--force] [chatgpt|chrome|claude|browseros|codex]'
       echo 'Default: check vendor feeds, build newer versions, install with pacman.'
       echo '--check/--dry-run compares installed packages without downloading or installing.'
       exit 0 ;;
@@ -22,7 +22,7 @@ while (($#)); do
   esac
   shift
 done
-((${#apps[@]})) || { apps=(chatgpt chrome claude); [[ $(uname -m) != aarch64 ]] || apps+=(browseros); }
+((${#apps[@]})) || { apps=(chatgpt chrome claude codex); [[ $(uname -m) != aarch64 ]] || apps+=(browseros); }
 arch=$(uname -m)
 case $arch in aarch64|x86_64) ;; *) echo "Unsupported architecture: $arch" >&2; exit 2 ;; esac
 
@@ -79,6 +79,7 @@ for app in "${apps[@]}"; do
   build_dir=$cache_root/$app/$version/$arch
   mkdir -p "$build_dir"
   artifact=$build_dir/vendor.deb
+  [[ $app != codex ]] || artifact=$build_dir/vendor.tar.zst
   if [[ ! -f $artifact ]] || ! printf '%s  %s\n' "$sha256" "$artifact" | sha256sum --check --status; then
     curl -fSL --retry 3 "$url" -o "$artifact.part"
     printf '%s  %s\n' "$sha256" "$artifact.part" | sha256sum --check --status ||
@@ -89,7 +90,7 @@ for app in "${apps[@]}"; do
   [[ $mode == download ]] && continue
 
   launcher_sha=
-  if [[ $app != browseros ]]; then
+  if [[ $app != browseros && $app != codex ]]; then
     cp "$here/vendor-packages/$app-launcher.sh" "$build_dir/launcher.sh"
     launcher_sha=$(sha256sum "$build_dir/launcher.sh" | cut -d' ' -f1)
   fi
