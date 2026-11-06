@@ -2,10 +2,16 @@
 """Resolve stable native binaries from vendor Debian indexes and GitHub releases."""
 
 import argparse
+import importlib.util
 import json
 from pathlib import Path, PurePosixPath
 import re
 import subprocess
+from urllib.parse import unquote
+
+extra_spec = importlib.util.spec_from_file_location('vendor_extra', Path(__file__).with_name('vendor-extra-metadata.py'))
+extra = importlib.util.module_from_spec(extra_spec)
+extra_spec.loader.exec_module(extra)
 
 VENDORS = {
     "claude": (
@@ -61,16 +67,18 @@ def resolve_browseros(architecture, index):
         m = re.fullmatch(r"browserclaw/v(\d+(?:\.\d+)+)", tag)
         if not m or release.get("draft") or release.get("prerelease"):
             continue
-        version = m.group(1)
-        name = f"BrowserOS_neo_v{version}_arm64.deb"
         for asset in release.get("assets", []):
-            if asset.get("name") != name:
+            name = asset.get("name", "")
+            build = re.fullmatch(r"BrowserOS_neo_v(\d+(?:\.\d+)+)_arm64\.deb", name)
+            if not build:
                 continue
+            # Maintenance installers can be replaced under an older release tag.
+            version = build.group(1)
             digest = asset.get("digest") or ""
             url = asset.get("browser_download_url", "")
             expected = f"https://github.com/browseros-ai/BrowserOS/releases/download/{tag}/{name}"
             size = asset.get("size")
-            if not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", digest) or url != expected or not isinstance(size, int) or size <= 0:
+            if not re.fullmatch(r"sha256:[0-9a-fA-F]{64}", digest) or unquote(url) != expected or not isinstance(size, int) or size <= 0:
                 raise ValueError("Invalid BrowserOS release asset metadata")
             matches.append(dict(app="browseros", package="browseros-neo-bin", architecture=architecture,
                                 version=version, pkgver=version, pkgrel="1", url=url,
@@ -134,15 +142,25 @@ def resolve(app, architecture, index):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("app", choices=[*VENDORS, "browseros", "codex"])
+    parser.add_argument("app", choices=[*VENDORS, "browseros", "codex", "hqplayer5desktop", "hqplayer-embedded", "hyprmoncfg"])
     parser.add_argument("architecture", choices=ARCHES)
     parser.add_argument("--index-file", type=Path, help="Use a saved vendor index for inspection")
     parser.add_argument("--tsv", action="store_true")
     args = parser.parse_args()
+    if args.app.startswith('hqplayer'):
+        release = extra.resolve_hqplayer(args.app, args.architecture,
+                                        args.index_file.read_text() if args.index_file else None)
+        if args.tsv:
+            print("\t".join(str(release[k]) for k in ("package", "version", "pkgver", "pkgrel", "url", "sha256", "size")))
+        else:
+            print(json.dumps(release, indent=2))
+        return
     if args.index_file:
         index = args.index_file.read_text()
     else:
-        if args.app == "codex":
+        if args.app == "hyprmoncfg":
+            url = "https://api.github.com/repos/crmne/hyprmoncfg/releases/latest"
+        elif args.app == "codex":
             url = "https://api.github.com/repos/openai/codex/releases/latest"
         elif args.app == "browseros":
             url = "https://api.github.com/repos/browseros-ai/BrowserOS/releases?per_page=100"
@@ -154,7 +172,9 @@ def main():
              "--max-time", "30", "--proto", "=https", "--proto-redir", "=https", url],
             text=True,
         )
-    if args.app == "codex":
+    if args.app == "hyprmoncfg":
+        release = extra.resolve_hyprmoncfg(args.architecture, index)
+    elif args.app == "codex":
         release = resolve_codex(args.architecture, index)
     elif args.app == "browseros":
         release = resolve_browseros(args.architecture, index)

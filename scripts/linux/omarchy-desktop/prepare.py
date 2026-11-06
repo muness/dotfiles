@@ -1,18 +1,18 @@
 #!/usr/bin/python3
-"""Stage a desktop-only package from one reviewed, immutable source revision."""
+"""Stage the desktop from a clean checkout selected by the release updater."""
 import json
+import os
 from pathlib import Path
 import re
 import shutil
 import subprocess
 import sys
 
-REVISION = 'ba546a61f881c1fe9d79d75ec050eab048b8cb63'
-
-
 def patch_lock_service(text):
     # Quickshell 0.3.2 can clear WlSessionLock.locked without invalidating
     # bindings after unlock. Its stale aggregate then suppresses the next lock.
+    if 'function currentlyLocked()' in text:
+        return text
     replacements = {
         '  readonly property bool locked: lockRequested || sessionLock.locked || sessionLock.secure':
         '''  // Track our request and the compositor acknowledgement. The WlSessionLock
@@ -32,8 +32,8 @@ def main(source, destination):
     source, destination = Path(source), Path(destination)
     actual = subprocess.check_output(['git', '-C', str(source), 'rev-parse', 'HEAD'], text=True).strip()
     dirty = subprocess.check_output(['git', '-C', str(source), 'status', '--porcelain'], text=True)
-    if actual != REVISION or dirty:
-        raise SystemExit('Requires a clean Omarchy Mac checkout at ' + REVISION)
+    if dirty:
+        raise SystemExit('Requires a clean upstream checkout')
     runtime = destination / 'usr/share/omarchy'
     runtime.mkdir(parents=True)
     for name in ('bin', 'config', 'default', 'themes', 'shell'):
@@ -42,18 +42,20 @@ def main(source, destination):
     # empty scratchpads, preserving the lazy launch and explicit placement.
     qconsole = runtime / 'default/hypr/qconsole.lua'
     text = qconsole.read_text()
-    seed = 'local seed = "[workspace special:scratchpad silent] omarchy-agent"'
+    match = re.search(r'^local seed = .+$', text, re.M)
+    seed = match.group(0) if match else ''
     rule = '\n    on_created_empty = seed,\n'
-    if text.count(seed) != 1 or text.count(rule) != 1:
-        raise SystemExit('Omarchy scratchpad layout changed; review required')
+    if rule in text and not seed:
+        raise SystemExit('Cannot adapt the upstream console workspace rule')
     handler = '''
 
 hl.on("workspace.created", function(workspace)
-  if workspace.addressable_name == "special:scratchpad" and workspace.is_empty then
+  if workspace and (workspace.name or workspace.addressable_name) == (CONSOLE or "special:scratchpad") and workspace.is_empty then
     hl.exec_cmd(seed)
   end
 end)'''
-    qconsole.write_text(text.replace(seed, seed + handler).replace(rule, ''))
+    if rule in text:
+        qconsole.write_text(text.replace(seed, seed + handler).replace(rule, ''))
     # Qt 6.12 introduces QtQuick.Color, which wins unqualified resolution over
     # this source's singleton. Without a unique name every theme surface is
     # undefined even though QML reports that the configuration loaded.
@@ -64,6 +66,9 @@ end)'''
     (commons / 'Color.qml').rename(commons / 'ThemeColor.qml')
     module = commons / 'qmldir'
     module.write_text(module.read_text().replace('singleton Color 1.0 Color.qml', 'singleton ThemeColor 1.0 ThemeColor.qml'))
+    # Third-party plugins use the qualified Commons.Color singleton, which
+    # does not collide with QtQuick.Color. Retain that public plugin API.
+    module.write_text(module.read_text() + '\nsingleton Color 1.0 ThemeColor.qml\n')
     lock_service = runtime / 'shell/plugins/lock/Service.qml'
     lock_service.write_text(patch_lock_service(lock_service.read_text()))
     for name in ('version', 'LICENSE', 'logo.txt', 'logo.svg', 'icon.png', 'icon.txt'):
@@ -106,33 +111,56 @@ end)'''
         raise SystemExit('Omarchy logo helper changed; review required')
     logo.write_text(logo_text.replace(old, 'cat "${OMARCHY_PATH:-/usr/share/omarchy}/logo.txt"'))
     write(runtime / 'desktop-disabled-commands.txt', '\n'.join(sorted(disabled)) + '\n')
-    write(runtime / 'desktop-source-revision', REVISION + '\n')
+    write(runtime / 'desktop-source-revision', actual + '\n')
+    release = os.environ.get('OMARCHY_DESKTOP_RELEASE', '')
+    if release:
+        write(runtime / 'desktop-upstream-release', release + '\n')
+        write(runtime / 'version', release.removeprefix('v') + '\n')
+    write(runtime / 'desktop-package-digest', os.environ.get('OMARCHY_DESKTOP_RECIPE_DIGEST', '') + '\n')
 
     # Expose only read-only package and disk queries from the management set.
     # Mutating upstream helpers assume an Omarchy-managed OS and remain blocked.
     for name in ('omarchy-pkg-present', 'omarchy-pkg-missing', 'omarchy-pkg-available', 'omarchy-drive-info'):
+        if not (source / 'bin' / name).exists():
+            continue
         shutil.copy2(source / 'bin' / name, runtime / 'bin' / name)
         (runtime / 'bin' / name).chmod(0o755)
         if name in disabled:
             disabled.remove(name)
+    # Ordinary app/dependency installs must work from plugins too. Keep OS
+    # provisioning blocked, but replace these entry points with package-manager
+    # calls that authenticate graphically and don't run Omarchy migrations.
+    for command in (Path(__file__).resolve().parent / 'bin').iterdir():
+        shutil.copy2(command, runtime / 'bin' / command.name)
+        (runtime / 'bin' / command.name).chmod(0o755)
+        if command.name in disabled:
+            disabled.remove(command.name)
     write(runtime / 'desktop-disabled-commands.txt', '\n'.join(sorted(disabled)) + '\n')
     script('omarchy-desktop-package-install', '''set -euo pipefail
 read -r -p "Arch package name: " package
 [[ $package =~ ^[a-zA-Z0-9@._+:-]+$ ]] || { echo "Invalid package name" >&2; exit 1; }
 pacman -Si "$package" >/dev/null || { echo "Package not found in configured repositories" >&2; exit 1; }
 exec pkexec /usr/bin/pacman -Syu --needed "$package"''')
-    script('omarchy-desktop-system-update', '''set -euo pipefail
-exec pkexec /usr/bin/pacman -Syu''')
+    script('omarchy-desktop-system-update', 'exec /usr/bin/python3 /usr/share/omarchy/desktop-package/update.py "$@"')
+    script('omarchy-update', 'exec omarchy-desktop-system-update "$@"')
+    script('omarchy-update-omarchy', 'exec omarchy-desktop-system-update "$@"')
+    recipe = Path(__file__).resolve().parent
+    shutil.copytree(recipe, runtime / 'desktop-package', ignore=shutil.ignore_patterns('__pycache__', '*.pyc'))
 
     # Restrict theme switching to the desktop and its own terminal, leaving
     # COSMIC, browser, editor and application preferences alone.
     theme = runtime / 'bin/omarchy-theme-set'
-    text = theme.read_text()
-    text, count = re.subn(r'post_theme_commands=\(.*?\n\)', 'post_theme_commands=(omarchy-restart-hyprctl omarchy-theme-set-foot)', text, flags=re.S)
+    text = (source / 'bin/omarchy-theme-set').read_text()
+    text, count = re.subn(r'(post_theme_commands|visible_theme_commands)=\(.*?\n\)', r'\1=(omarchy-restart-hyprctl omarchy-theme-set-foot)', text, flags=re.S)
+    text = re.sub(r'other_theme_commands=\(.*?\n\)', 'other_theme_commands=()', text, flags=re.S)
     if count != 1:
         raise SystemExit('Theme command layout changed; review required')
     text = text.replace('omarchy-hook theme-set "$THEME_NAME" >/dev/null', ': # System/user theme hooks are not provisioned by this package.')
     theme.write_text(text)
+    for name in ('omarchy-theme-set', 'omarchy-update', 'omarchy-update-omarchy'):
+        if name in disabled:
+            disabled.remove(name)
+    write(runtime / 'desktop-disabled-commands.txt', '\n'.join(sorted(disabled)) + '\n')
     script('omarchy-powerprofiles-init', ': # TLP owns automatic AC/battery selection.')
     profile_set = runtime / 'bin/omarchy-powerprofiles-set'
     profile_set.write_text(profile_set.read_text().replace('powerprofilesctl set', 'tlpctl set'))
@@ -173,7 +201,7 @@ end)
   "install": {"icon":"󰉉","label":"Install"},
   "install.package": {"label":"Arch Package","action":"omarchy-launch-floating-terminal-with-presentation omarchy-desktop-package-install"},
   "update": {"icon":"","label":"Update"},
-  "update.system": {"label":"System Packages","action":"omarchy-launch-floating-terminal-with-presentation omarchy-desktop-system-update"},
+  "update.system": {"label":"Omarchy & System Packages","action":"omarchy-launch-floating-terminal-with-presentation omarchy-desktop-system-update"},
 '''
     menu.write_text(text.replace('  // Root Menu\n', '  // Root Menu\n' + entries, 1))
     config = json.loads((runtime / 'config/omarchy/shell.json').read_text())
@@ -185,6 +213,13 @@ end)
     binaries.mkdir(parents=True)
     for command in (runtime / 'bin').iterdir():
         if command.is_file():
+            # UWSM terminal scopes do not always inherit the shell's custom
+            # environment. Every standalone Bash helper must find its own
+            # installation, including the Done prompt after an update exits.
+            text = command.read_text()
+            if text.startswith('#!/bin/bash\n'):
+                command.write_text(text.replace('#!/bin/bash\n',
+                    '#!/bin/bash\nexport OMARCHY_PATH="${OMARCHY_PATH:-/usr/share/omarchy}"\n', 1))
             (binaries / command.name).symlink_to('/usr/share/omarchy/bin/' + command.name)
     write(destination / 'usr/share/wayland-sessions/omarchy.desktop', '''[Desktop Entry]
 Name=Omarchy

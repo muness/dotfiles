@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Bazecor
+Comment=Configure your Dygma keyboard
+Exec=bazecor %U
+Icon=bazecor
+Terminal=false
+Type=Application
+Categories=Utility;
+StartupWMClass=Bazecor

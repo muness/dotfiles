@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 """Render shell/menu on a private headless Wayland server, without the live desktop."""
 import os
+import re
 from pathlib import Path
 import shutil
 import shlex
@@ -15,6 +16,20 @@ def main():
     userhome, runtime = trial / 'home', trial / 'run'
     userhome.mkdir()
     runtime.mkdir(mode=0o700)
+    # New upstream overlays wait for a Hyprland monitor/scale acknowledgement.
+    # This isolated Sway rendering test supplies its one 1x test monitor only;
+    # the installed shell and the live compositor are never modified.
+    shell = trial / 'shell'
+    shutil.copytree(staged / 'shell', shell)
+    overlay = shell / 'Ui/OverlayWindow.qml'
+    if overlay.exists():
+        text = overlay.read_text()
+        marker = '    return null\n  }'
+        assert text.count(marker) == 1
+        text = text.replace(marker, '    return targetScreen ? ({ name: targetScreen.name, scale: 1 }) : null\n  }', 1)
+        text = re.sub(r'  readonly property bool contentReady:.*?\n  property bool contentRevealed:',
+                      '  readonly property bool contentReady: shown\n  property bool contentRevealed:', text, flags=re.S)
+        overlay.write_text(text)
     for relative in ('.config/omarchy', '.local/state/omarchy'):
         target = userhome / relative
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -34,6 +49,7 @@ exec /bin/sh -c 'sleep 4; omarchy-menu summon root; sleep 3; grim IMAGE_PATH; sw
         env.pop(name, None)
     command = ['/usr/bin/timeout', '15', '/usr/bin/bwrap', '--ro-bind', '/', '/',
                '--ro-bind', str(staged), '/usr/share/omarchy',
+               '--ro-bind', str(shell), '/usr/share/omarchy/shell',
                '--bind', str(userhome), str(Path.home()), '--bind', str(runtime), env['XDG_RUNTIME_DIR'],
                '--tmpfs', '/tmp', '--tmpfs', '/run/dbus', '--proc', '/proc', '--dev', '/dev',
                '--unshare-pid', '--unshare-net', '--die-with-parent',

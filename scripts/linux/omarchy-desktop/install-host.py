@@ -21,7 +21,7 @@ def main(archive):
     if os.geteuid() != 0:
         raise SystemExit('Run with pkexec /usr/bin/python3 ' + str(Path(__file__).resolve()) + ' PACKAGE')
     archive = Path(archive).resolve(strict=True)
-    if output('/usr/bin/pacman', '-Qp', str(archive)).strip() != 'omarchy-desktop-cosmic 4.0.3rc4-3':
+    if output('/usr/bin/pacman', '-Qp', str(archive)).split()[0] != 'omarchy-desktop-cosmic':
         raise SystemExit('Unexpected desktop package')
     config = Path('/etc/pacman.conf').read_bytes()
     pins = [line for line in config.splitlines() if line.startswith(b'IgnorePkg')]
@@ -34,13 +34,13 @@ def main(archive):
     snapshot.parent.mkdir(parents=True, exist_ok=True)
     run('/usr/bin/btrfs', 'subvolume', 'snapshot', '-r', '/', str(snapshot))
     print('Root recovery snapshot:', snapshot, flush=True)
-    dependencies = ['quickshell', 'uwsm', 'gum', 'qt6-wayland', 'qt6-imageformats', 'udiskie',
-                    'hyprpicker', 'hyprsunset', 'socat', 'inotify-tools',
-                    'xdg-terminal-exec', 'ttf-jetbrains-mono-nerd', 'woff2-font-awesome', 'wf-recorder']
-    run('/usr/bin/pacman', '-Syu', '--needed', '--noconfirm', *dependencies)
+    metadata = output('/usr/bin/bsdtar', '-xOf', str(archive), '.PKGINFO')
+    dependencies = [line.removeprefix('depend = ') for line in metadata.splitlines()
+                    if line.startswith('depend = ')]
+    run('/usr/bin/pacman', '-Syu', '--disable-download-timeout', '--needed', '--noconfirm', *dependencies)
     assert output('/usr/bin/pacman', '-Q', *packages) == before, 'Aurora stack changed unexpectedly'
     assert [line for line in Path('/etc/pacman.conf').read_bytes().splitlines() if line.startswith(b'IgnorePkg')] == pins
-    run('/usr/bin/pacman', '-U', '--needed', '--noconfirm', str(archive))
+    run('/usr/bin/pacman', '-U', '--noconfirm', str(archive))
     for name in ('omarchy-lock-password', 'omarchy-lock-fingerprint'):
         target = Path('/etc/pam.d') / name
         if target.exists():

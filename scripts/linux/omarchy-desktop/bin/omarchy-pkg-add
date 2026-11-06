@@ -1,0 +1,13 @@
+#!/bin/bash
+# omarchy:summary=Install missing repository packages with graphical authentication
+# omarchy:args=<packages...>
+set -euo pipefail
+
+(($#)) || { echo 'Usage: omarchy pkg add <packages...>' >&2; exit 1; }
+missing=()
+for package in "$@"; do
+  [[ $package =~ ^[a-zA-Z0-9@._+:-]+$ ]] || { echo "Invalid package name: $package" >&2; exit 1; }
+  pacman -Q "$package" >/dev/null 2>&1 || missing+=("$package")
+done
+((${#missing[@]})) || exit 0
+exec pkexec /usr/bin/pacman -Syu --needed "${missing[@]}"

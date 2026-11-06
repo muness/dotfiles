@@ -1,0 +1,9 @@
+post_install() {
+  install -dm755 /var/lib/hqplayer/home
+  # Preserve existing configuration, licenses and service state on upgrades.
+  if [[ ! -e /etc/pki/tls/certs/ca-bundle.crt ]]; then
+    install -dm755 /etc/pki/tls/certs
+    ln -s /etc/ssl/certs/ca-certificates.crt /etc/pki/tls/certs/ca-bundle.crt
+  fi
+}
+post_upgrade() { post_install; }

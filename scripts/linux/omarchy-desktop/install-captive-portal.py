@@ -5,13 +5,12 @@ import json
 from pathlib import Path
 import shutil
 import subprocess
-import runpy
 
 
 def main():
     if os.geteuid() == 0:
         raise SystemExit('Run as the desktop user, not root')
-    runpy.run_path(str(Path(__file__).with_name('install-foyer.py')))['install']()
+    subprocess.run(['bash', str(Path(__file__).resolve().parent.parent / 'vendor-apps.sh'), 'foyer'], check=True)
     home = Path.home()
     helper = home / '.local/libexec/omarchy-captive-portal'
     helper.parent.mkdir(parents=True, exist_ok=True)

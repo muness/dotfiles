@@ -65,8 +65,6 @@ install_system_packages() {
   sudo systemctl set-default graphical.target
   configure_tailscale_tray
   install_desktop_flatpaks
-  bash "$dotfiles_dir/scripts/linux/tether.sh"
-  bash "$dotfiles_dir/scripts/linux/1password.sh"
   bash "$dotfiles_dir/scripts/linux/vendor-apps.sh"
   if command -v syncthing >/dev/null 2>&1; then
     systemctl --user enable --now syncthing.service ||

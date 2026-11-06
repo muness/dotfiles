@@ -35,12 +35,23 @@ kernel/boot stack with SEP writes disabled. `scripts/linux/aurora.sh` also runs
 independently. See the [Arch/Aurora runbook](docs/asahi-arch-aurora.md) for boot
 isolation, private COSMIC settings transfer, and deliberate Touch ID activation.
 
-On Arch ARM, Chrome, ChatGPT, Claude Desktop and BrowserOS neo are included. Re-run
-`scripts/linux/vendor-apps.sh` to update their native vendor binaries; `--check`
-compares installed and available versions without installing. The helper verifies vendor SHA256 hashes
-and builds local pacman packages, so no AUR helper or Debian/RPM tools are needed.
-The desktop profile also schedules weekly user Flatpak, mise and Tether updates;
-the vendor packages are updated when you run the vendor updater.
+Run `bash ~/dotfiles/scripts/linux/vendor-apps.sh` to install or update the
+manually managed desktop apps. With no app names it includes Tether, 1Password,
+Zed, Chrome and ChatGPT; Arch also includes Claude Desktop, Codex and (on ARM64)
+BrowserOS neo. Installed Bazecor, HQPlayer Desktop 5/Embedded, Hyprmoncfg, Foyer,
+Omarchy and Wine/FEX packages join the default update list too. Bootstrap uses
+this same default list. `--check` checks available
+builds without installing; append an app name to select just that app.
+Arch repackages native vendor binaries for pacman; the coverage notes describe
+which vendors publish checksums.
+Tether and Zed use checksum-verified upstream releases; 1Password uses its stable
+tarball (or its RPM repository on Fedora x86_64).
+
+The weekly job checks that same app list and notifies about updates requiring
+installation. It updates installed Tether/Zed/Foyer apps through `vendor-apps.sh
+--user-only`, alongside user Flatpaks and mise tools. See the
+[update coverage and pin audit](docs/linux-app-updates.md) for hardware pins and
+apps outside this updater.
 
 ## What differs by OS
 
@@ -134,7 +145,7 @@ as a custom shortcut in COSMIC Settings → Keyboard if you want a launcher key.
 
 On Arch desktop installs, Tether is installed from the latest checksum-verified upstream
 AppImage, with its user service enabled and BlueZ's OBEX package installed.
-To install or update it separately, run `bash ~/dotfiles/scripts/linux/tether.sh`.
+To install or update just Tether, run `bash ~/dotfiles/scripts/linux/vendor-apps.sh tether`.
 Before Bluetooth pairing, run the installed AppImage with `--bt-setup` and
 review its system-wide Bluetooth changes; the installer does not apply them.
 Pair the iPhone in Tether's Devices view and enable message notifications and

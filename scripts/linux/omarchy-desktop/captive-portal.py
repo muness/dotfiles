@@ -22,7 +22,7 @@ BUS = 'org.omarchy.CaptivePortal'
 PATH = '/StatusNotifierItem'
 SNI = 'org.kde.StatusNotifierItem'
 CONTROL = 'org.omarchy.CaptivePortal'
-FOYER = Path.home() / '.local/libexec/foyer-0.1.0'
+FOYER = Path.home() / '.local/libexec/foyer'
 
 
 def launch_assistant(device, uri):

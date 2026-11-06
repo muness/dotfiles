@@ -1,0 +1,15 @@
+#!/bin/bash
+# omarchy:summary=Install missing AUR packages with graphical authentication
+# omarchy:args=<packages...>
+set -euo pipefail
+
+(($#)) || { echo 'Usage: omarchy pkg aur add <packages...>' >&2; exit 1; }
+missing=()
+for package in "$@"; do
+  [[ $package =~ ^[a-zA-Z0-9@._+:-]+$ ]] || { echo "Invalid package name: $package" >&2; exit 1; }
+  pacman -Q "$package" >/dev/null 2>&1 || missing+=("$package")
+done
+((${#missing[@]})) || exit 0
+# Build as the session user; elevate only yay's pacman transactions. Disable
+# sudo's keepalive because pkexec has no sudo -v operation.
+exec yay -S --needed --sudo /usr/bin/pkexec --sudoflags '' --nosudoloop --pacman /usr/bin/pacman "${missing[@]}"

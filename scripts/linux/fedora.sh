@@ -82,9 +82,7 @@ install_system_packages() {
 
   install_desktop_flatpaks
 
-  bash "$dotfiles_dir/scripts/linux/1password.sh"
-  install_chatgpt
-  install_chrome
+  bash "$dotfiles_dir/scripts/linux/vendor-apps.sh"
   systemctl --user enable --now syncthing.service || true
 }
 
@@ -94,27 +92,4 @@ install_satty() {
   command -v satty >/dev/null 2>&1 && return
   sudo dnf install -y --skip-unavailable "${satty_build_deps[@]}"
   cargo install --locked satty
-}
-
-# OpenAI's official ChatGPT desktop app (Linux preview; Fedora 43/44, x86_64 and
-# aarch64). The RPM is ~500 MB and installs /etc/yum.repos.d/chatgpt.repo with a
-# signed repo, so later updates come through dnf. The first install is trusted
-# on the HTTPS download alone because the signing key ships inside the package.
-install_chatgpt() {
-  rpm -q chatgpt >/dev/null 2>&1 && return
-  local rpm_file
-  rpm_file=$(mktemp --suffix=.rpm)
-  curl -fSL "https://persistent.oaistatic.com/codex-app-prod/linux/rpm/latest/chatgpt.$(uname -m).rpm" -o "$rpm_file" &&
-    sudo dnf install -y "$rpm_file" || echo "warning: ChatGPT desktop app not installed" >&2
-  rm -f "$rpm_file"
-}
-
-# Google ships official Chrome for Linux arm64 (since July 2026). The RPM adds
-# Google's yum repo, so later updates come through dnf. Chromium stays installed.
-install_chrome() {
-  rpm -q google-chrome-stable >/dev/null 2>&1 && return
-  local arch
-  arch=$(uname -m)
-  sudo dnf install -y "https://dl.google.com/linux/direct/google-chrome-stable_current_${arch}.rpm" ||
-    echo "warning: Google Chrome not installed" >&2
 }

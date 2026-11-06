@@ -8,10 +8,11 @@ import subprocess
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument('kind', choices=('tether', 'aurora'))
+    parser.add_argument('kind', choices=('tether', 'aurora', 'zed'))
     parser.add_argument('--index-file')
     args = parser.parse_args()
-    repo = 'zackb/tether' if args.kind == 'tether' else 'omacom/linux-aurora'
+    repo = {'tether': 'zackb/tether', 'aurora': 'omacom/linux-aurora',
+            'zed': 'zed-industries/zed'}[args.kind]
     if args.index_file:
         with open(args.index_file) as f:
             releases = json.load(f)
@@ -26,12 +27,14 @@ def main():
         if release.get('draft') or release.get('prerelease'):
             continue
         tag = release.get('tag_name', '')
-        pattern = r'v(\d+(?:\.\d+)+)' if args.kind == 'tether' else r'aurora-(\d+(?:\.\d+)+)'
+        pattern = r'v(\d+(?:\.\d+)+)' if args.kind != 'aurora' else r'aurora-(\d+(?:\.\d+)+)'
         match = re.fullmatch(pattern, tag)
         if not match:
             continue
         version = match.group(1)
-        name = f'tether-{version}-{arch}.AppImage' if args.kind == 'tether' else 'install-aurora-sep.sh'
+        name = {'tether': f'tether-{version}-{arch}.AppImage',
+                'aurora': 'install-aurora-sep.sh',
+                'zed': f'zed-linux-{arch}.tar.gz'}[args.kind]
         for asset in release.get('assets', []):
             if asset.get('name') != name:
                 continue

@@ -5,18 +5,7 @@ here=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
 status=0
 echo 'Vendor packages (dry run; full system upgrade is not simulated):'
 bash "$here/vendor-apps.sh" --check || status=1
-python3 "$here/github-release-metadata.py" tether || status=1
 bash "$here/aurora.sh" --check || status=1
-reviewed=$(sed -n "s/^REVISION = '\([0-9a-f]*\)'/\1/p" "$here/omarchy-desktop/prepare.py")
-remote=$(git ls-remote https://github.com/omacom/omarchy-mac.git refs/heads/quattro) || status=1
-remote=${remote%%$'\t'*}
-if [[ $reviewed =~ ^[0-9a-f]{40}$ && $remote =~ ^[0-9a-f]{40}$ ]]; then
-  echo "Omarchy Mac: reviewed $reviewed; upstream quattro $remote"
-  [[ $reviewed == "$remote" ]] || echo 'New Omarchy desktop source requires review and a rebuild.'
-else
-  echo 'Could not compare Omarchy Mac revisions.' >&2
-  status=1
-fi
 binder_base=$(sed -n 's/^_commit=\([0-9a-f]*\)$/\1/p' "$here/waydroid/PKGBUILD")
 # Backticks are literal Markdown delimiters in the vendored README.
 # shellcheck disable=SC2016

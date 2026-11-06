@@ -1,5 +1,5 @@
 [Unit]
-Description=Update user Flatpaks, mise tools and Tether
+Description=Update user apps and check vendor application updates
 Wants=network-online.target
 After=network-online.target
 

@@ -1,12 +1,24 @@
-# Omarchy alongside COSMIC
+# Omarchy with COSMIC Greeter
 
-This local package uses Omarchy Mac commit `ba546a61f881c1fe9d79d75ec050eab048b8cb63` (4.0.3rc4). It supplies a Hyprland/Quickshell session while COSMIC Greeter, Arch repositories, Aurora, TLP and the existing memory protection remain managed independently.
+This local package follows the newest release of `omacom/omarchy`, including
+release candidates. `update.py` resolves the release on every update; there is
+no hardcoded source revision. It supplies a Hyprland/Quickshell session while
+COSMIC Greeter, Arch repositories, Aurora, TLP and memory protection remain
+managed independently.
 
 It omits upstream system provisioning, migrations, pacman hooks, global environment changes, boot configuration and `/etc/skel` seeding. Most upstream system-management commands remain disabled. The menu offers monitor, keybinding and input configuration, plus Arch package installation and a full system package update using pacman and graphical polkit authentication. Read-only package and disk queries are also available. These controls do not run Omarchy migrations or manage Aurora's boot stack. Themes affect the Omarchy desktop and Foot, rather than browser/editor/COSMIC preferences. The microphone remapping is omitted.
 
 The standard `omarchy` command router is available, including `omarchy plugin
 add`, `list`, `enable`, `disable`, `update` and `remove`. It routes to the same
 installed helpers; the restricted system-management helpers remain disabled.
+
+Ordinary dependency installation works through `omarchy pkg add PACKAGE` and
+`omarchy pkg aur add PACKAGE`, including calls from shell plugins. Repository
+installs use pacman with graphical polkit authentication. AUR installs use yay
+as the session user and pkexec only for its pacman transactions, with normal
+package review and confirmation prompts. No agent or reviewed custom installer
+is required to install an app. Omarchy OS provisioning and migrations remain
+disabled because this is an additional desktop on the existing Arch system.
 
 The local package also renames the theme singleton to `ThemeColor`: Qt 6.12's built-in `QtQuick.Color` otherwise shadows the original `Color` singleton and leaves the shell unthemed. It includes `qt6-imageformats` for the shipped WebP backgrounds. Omarchy autostart explicitly finalizes UWSM before starting session services.
 
@@ -23,18 +35,12 @@ private test copy; no test IPC method is installed in the desktop shell.
 
 ## Build and install
 
-Obtain a clean checkout of the pinned source. `prepare.py` verifies its commit and working tree; it never runs the upstream installer.
+Run as the desktop user:
 
 ```sh
-mkdir -p ~/.cache/dotfiles/omarchy-desktop/build
-cp ~/dotfiles/scripts/linux/omarchy-desktop/PKGBUILD ~/.cache/dotfiles/omarchy-desktop/build/
-cd ~/.cache/dotfiles/omarchy-desktop/build
-OMARCHY_DESKTOP_RECIPE="$HOME/dotfiles/scripts/linux/omarchy-desktop" \
-OMARCHY_DESKTOP_SOURCE=/absolute/path/to/pinned/omarchy-mac \
-  makepkg --nodeps --force
-# Use the exact package path emitted by makepkg (compression follows makepkg.conf).
-pkexec /usr/bin/python3 ~/dotfiles/scripts/linux/omarchy-desktop/install-host.py /absolute/path/to/package
-python3 ~/dotfiles/scripts/linux/omarchy-desktop/configure-user.py
+/usr/bin/python3 ~/dotfiles/scripts/linux/omarchy-desktop/update.py
+# Or use Omarchy > Update > Omarchy & System Packages.
+# Preview: update.py --check. Build without installing: update.py --build-only.
 ```
 
 If upgrading the package during an active Omarchy session, reload Hyprland and
@@ -51,9 +57,9 @@ The separate `../omarchy-host-setup.py` adds fingerprint-first login with passwo
 
 ## Login and verification
 
-Public Wi-Fi sign-in uses upstream [Foyer 0.1.0](https://github.com/tektum/foyer)
+Public Wi-Fi sign-in uses upstream [Foyer](https://github.com/tektum/foyer)
 plus the user-owned `omarchy-captive-portal.service`. Foyer is installed from a
-checksum-pinned Linux ARM64/AMD64 release into `~/.local/libexec`. It launches
+latest checksum-verified Linux ARM64/AMD64 release into `~/.local/libexec`. It launches
 an isolated incognito Chrome/Chromium window through a local SOCKS proxy.
 Both DNS and portal connections bind to the selected Wi-Fi interface, leaving
 system DNS, routes, and the normal browser profile alone.
@@ -138,6 +144,13 @@ Three-finger horizontal trackpad swipes switch workspaces, configured in `~/.con
 
 User configuration backups live under `~/.local/state/dotfiles/omarchy-backups/TIMESTAMP`. Restore the backed-up `hypr`, `omarchy`, `foot` and UWSM environment, removing newly created paths recorded in `originally-absent.json`. Preserve any new customizations first.
 
-Select COSMIC before removing `omarchy-desktop-cosmic` with pacman. Its dependencies are ordinary repository packages; do not bulk-remove shared dependencies. The `pre-omarchy-desktop-*` root snapshot is a separate recovery option, not an automatic rollback of home or EFI. No reboot or snapshot restoration is automated here.
+Install or select another working desktop session before removing `omarchy-desktop-cosmic` with pacman. Its dependencies are ordinary repository packages; do not bulk-remove shared dependencies. The `pre-omarchy-desktop-*` root snapshot is a separate recovery option, not an automatic rollback of home or EFI. No reboot or snapshot restoration is automated here.
 
-Desktop updates require rebuilding this pinned package after reviewing a new source revision. The upstream Omarchy updater is intentionally unavailable in this integration.
+The installed `omarchy update` and Update menu resolve, build and install the
+newest upstream release, and run the normal pacman system upgrade. Personal
+configuration is preserved. The recipe and updater ship inside the package,
+so future releases do not require editing dotfiles or changing a revision.
+The weekly updater notifies about new Omarchy releases. Plain `pacman -Syu`
+updates repository dependencies but cannot fetch/rebuild this local Git package;
+use `omarchy update` for both. Upstream OS provisioning and migrations remain
+excluded from this desktop integration.
