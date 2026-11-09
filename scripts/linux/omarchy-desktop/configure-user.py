@@ -65,6 +65,12 @@ def main():
         elif target.exists():
             shutil.rmtree(target)
         shutil.copytree(runtime / 'config' / name, target)
+    # The upstream preview picker is not included in this desktop package.
+    # Use the picker shipped with xdg-desktop-portal-hyprland instead.
+    (config / 'hypr/xdph.conf').write_text('''screencopy {
+    allow_token_by_default = true
+}
+''')
     hypr = config / 'hypr/hyprland.lua'
     text = hypr.read_text().replace('-- Load Omarchy defaults.', 'omarchy_preinstalled_bindings = false\n\n-- Load Omarchy defaults.')
     hypr.write_text(text)

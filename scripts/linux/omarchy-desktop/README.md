@@ -140,6 +140,8 @@ The host backup lives under `/var/lib/dotfiles/backups/omarchy-host-TIMESTAMP`; 
 
 The user setup enables window resizing by dragging borders without holding Super in `~/.config/hypr/looknfeel.lua`. Super + right-click drag also resizes windows; Super + left-click drag moves them.
 
+The user setup uses Hyprland's default screen-sharing picker in `~/.config/hypr/xdph.conf`. The upstream preview picker is not included in this desktop package; pointing the portal at it prevents sharing a screen or window.
+
 Three-finger horizontal trackpad swipes switch workspaces, configured in `~/.config/hypr/input.lua`.
 
 User configuration backups live under `~/.local/state/dotfiles/omarchy-backups/TIMESTAMP`. Restore the backed-up `hypr`, `omarchy`, `foot` and UWSM environment, removing newly created paths recorded in `originally-absent.json`. Preserve any new customizations first.
