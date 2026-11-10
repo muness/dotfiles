@@ -57,6 +57,10 @@ The separate `../omarchy-host-setup.py` adds fingerprint-first login with passwo
 
 ## Login and verification
 
+The optional [dock and app switcher setup](dock-switcher/README.md) installs
+Omarchy AltTab and a low-motion dock with non-conflicting shortcuts. Run its
+installer from an active Omarchy session.
+
 Public Wi-Fi sign-in uses upstream [Foyer](https://github.com/tektum/foyer)
 plus the user-owned `omarchy-captive-portal.service`. Foyer is installed from a
 latest checksum-verified Linux ARM64/AMD64 release into `~/.local/libexec`. It launches
