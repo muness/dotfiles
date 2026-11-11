@@ -1,0 +1,10 @@
+[Unit]
+Description=Warn about unstable power connections
+
+[Service]
+ExecStart=%h/.local/lib/battery-charge/power-warning.py
+Restart=on-failure
+RestartSec=10
+
+[Install]
+WantedBy=graphical-session.target

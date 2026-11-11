@@ -85,6 +85,16 @@ def main():
     menu.parent.mkdir(parents=True, exist_ok=True)
     menu.write_text(updated_menu)
     shell.write_text(json.dumps(data, indent=2) + '\n')
+    monitor = home / '.local/lib/battery-charge/power-warning.py'
+    monitor.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(SOURCE / 'power-warning.py', monitor)
+    monitor.chmod(0o755)
+    unit = home / '.config/systemd/user/power-warning.service'
+    unit.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copy2(SOURCE / 'power-warning.service', unit)
+    subprocess.run(['/usr/bin/systemctl', '--user', 'daemon-reload'], check=True)
+    subprocess.run(['/usr/bin/systemctl', '--user', 'enable', '--now', 'power-warning.service'], check=True)
+    subprocess.run(['/usr/bin/systemctl', '--user', 'restart', 'power-warning.service'], check=True)
     subprocess.run(['omarchy-menu', 'refresh'], check=True)
     print('Installed battery charge menu. Backups:', backup)
 

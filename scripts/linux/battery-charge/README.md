@@ -50,3 +50,23 @@ and the marked battery block from the menu extension. Remove
 `/usr/local/libexec/dotfiles-set-charge-limit`. The last selected TLP cap remains.
 
 Verification: `python3 -m unittest discover -s scripts/linux/battery-charge -p 'test_*.py'`.
+
+## TLP power-event loop
+
+On this host, frequent macsmc power-supply change events caused TLP's stock
+udev rule to repeatedly run `tlp auto`, sustaining a CPU-consuming event storm.
+`config/udev/85-tlp.rules` retains TLP's USB and disk rules and invokes
+`tlp-power-change.py` only for the AC supply. The helper serializes events and
+runs TLP only when the actual AC online state changes. Install the helper as
+`/usr/local/libexec/dotfiles-tlp-power-change` (root-owned, mode 755), install
+the rule at `/etc/udev/rules.d/85-tlp.rules` (mode 644), and reload udev rules.
+This local override should be reviewed when the packaged TLP rule changes.
+
+## Power connection warnings
+
+A user service watches macsmc power events and power readings. It warns when
+at least 80 battery/AC events arrive in 30 seconds, or when a USB-C power
+source is detected while the battery drains at least 5 W for 60 seconds.
+Warnings repeat at most once per ten minutes. These symptoms can have several
+causes; the warning cannot identify a bad cable and cannot detect a cable that
+is completely invisible to the system. Stop with `systemctl --user disable --now power-warning.service`.

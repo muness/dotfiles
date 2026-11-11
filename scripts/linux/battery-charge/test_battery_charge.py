@@ -22,6 +22,43 @@ def load(name, file):
 helper = load('helper', 'set-charge-limit.py')
 installer = load('installer', 'install.py')
 client = load('client', 'battery-charge')
+power_change = load('power_change', 'tlp-power-change.py')
+power_warning = load('power_warning', 'power-warning.py')
+
+
+class PowerWarningTests(unittest.TestCase):
+    def test_storm_warning_and_cooldown(self):
+        detector = power_warning.Detector()
+        for n in range(80):
+            detector.event(n / 4)
+        self.assertEqual(detector.check(20, False, None), 'events')
+        self.assertIsNone(detector.check(21, False, None))
+        self.assertIsNone(detector.check(60, False, None))
+
+    def test_sustained_discharge_requires_source_and_recovers(self):
+        detector = power_warning.Detector()
+        self.assertIsNone(detector.check(0, False, -20))
+        self.assertIsNone(detector.check(10, True, -10))
+        self.assertIsNone(detector.check(65, True, 3))
+        self.assertIsNone(detector.check(70, True, -10))
+        self.assertEqual(detector.check(130, True, -10), 'discharge')
+
+
+class PowerChangeTests(unittest.TestCase):
+    def test_only_actual_ac_transitions_run_tlp(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            ac, state = Path(tmp) / 'online', Path(tmp) / 'state'
+            ac.write_text('0')
+            with patch.object(power_change, 'AC', ac), patch.object(power_change, 'STATE', state), \
+                 patch.object(power_change.subprocess, 'run') as run:
+                power_change.main()
+                power_change.main()
+                self.assertEqual(run.call_count, 1)
+                ac.write_text('1')
+                power_change.main()
+                power_change.main()
+                self.assertEqual(run.call_count, 2)
+                self.assertEqual(state.read_text(), '1\n')
 
 
 class ChargeTests(unittest.TestCase):

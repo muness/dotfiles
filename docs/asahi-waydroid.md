@@ -109,9 +109,6 @@ A fresh end-to-end installation and an interactive shutdown remain manual
 acceptance checks. The repository checks must not interrupt an active Android
 session just to exercise its shutdown control.
 
-On 2026-11-05, the user confirmed that the Waydroid Authenticator flow
-worked with Touch ID for the Android PIN prompt after number matching.
-
 ## Ika trial on Asahi (2026-11-05)
 
 [Ika 261101](https://github.com/DesktopECHO/ika/releases/tag/261101) was tried

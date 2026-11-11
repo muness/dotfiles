@@ -3,9 +3,6 @@
 case "${1:-}:${2:-}" in
   show-full-ui:*|first-launch:*|session:start|app:launch|app:intent)
     /usr/bin/systemctl --no-ask-password start waydroid-container.service || exit "$?"
-    if [[ -f $HOME/.local/lib/session-unlock/android-unlock.py ]]; then
-      /usr/bin/systemctl --user start --no-block session-unlock-android.service >/dev/null 2>&1
-    fi
     ;;
 esac
 exec /usr/bin/python3 /usr/bin/waydroid "$@"

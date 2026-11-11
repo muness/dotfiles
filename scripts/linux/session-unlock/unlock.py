@@ -129,7 +129,7 @@ def setup():
     box.add(Gtk.Label(label='Destination vault'))
     box.add(vault)
     fields = []
-    for caption in ('Current GNOME Keyring password', 'Current Android PIN'):
+    for caption in ('Current GNOME Keyring password',):
         box.add(Gtk.Label(label=caption))
         widget = Gtk.Entry()
         widget.set_visibility(False)
@@ -140,16 +140,14 @@ def setup():
     try:
         if dialog.run() != Gtk.ResponseType.OK:
             return False
-        password, pin = (entry.get_text() for entry in fields)
+        password = fields[0].get_text()
         vault_id = vault.get_active_id()
-        if not password or not pin.isascii() or not pin.isdigit() or not 4 <= len(pin) <= 16:
-            raise UnlockError('Provide the existing keyring password and a 4–16 digit Android PIN.')
+        if not password:
+            raise UnlockError('Provide the existing keyring password.')
         item = {'title': 'Asahi session unlock', 'category': 'SECURE_NOTE',
                 'fields': [
                     {'id': 'keyring_password', 'label': 'Keyring password',
-                     'type': 'CONCEALED', 'value': password},
-                    {'id': 'android_pin', 'label': 'Android PIN',
-                     'type': 'CONCEALED', 'value': pin}]}
+                     'type': 'CONCEALED', 'value': password}]}
         payload = json.dumps(item).encode()
         for entry in fields:
             entry.set_text('')
@@ -158,8 +156,7 @@ def setup():
                                  '--format=json', '-'], payload))
         item_id = created['id']
         config = {'collection': collection,
-                  'keyring_ref': f'op://{vault_id}/{item_id}/keyring_password',
-                  'android_ref': f'op://{vault_id}/{item_id}/android_pin'}
+                  'keyring_ref': f'op://{vault_id}/{item_id}/keyring_password'}
         CONFIG.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
         descriptor = os.open(str(CONFIG) + '.new', os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
         with os.fdopen(descriptor, 'w') as stream:

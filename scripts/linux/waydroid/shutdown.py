@@ -21,10 +21,6 @@ def shutdown(run=subprocess.run):
 
 
 def main():
-    # End observation of this guest before stopping it, so a quick reopen gets
-    # a fresh UI connection rather than waiting on the previous Android boot.
-    subprocess.run(['/usr/bin/systemctl', '--user', 'stop', 'session-unlock-android.service'],
-                   check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     try:
         shutdown()
     except (RuntimeError, OSError) as error:
