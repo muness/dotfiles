@@ -1,0 +1,10 @@
+#!/usr/bin/sh
+# Run a background job and its children in a bounded systemd scope.
+if [ "$#" -eq 0 ]; then
+    printf 'Usage: guarded-job COMMAND [ARG ...]\n' >&2
+    exit 2
+fi
+
+exec /usr/bin/systemd-run --user --scope --collect --quiet --slice=background.slice \
+    --property=CPUWeight=25 --property=MemoryHigh=4G --property=MemoryMax=6G \
+    --property=MemorySwapMax=2G --property=OOMPolicy=kill -- "$@"

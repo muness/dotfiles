@@ -32,7 +32,7 @@ a rollback must preserve or restore its path for disk swap to remain available.
 `desktop-session.conf` is installed as
 `/etc/systemd/system/session-.scope.d/50-desktop-priority.conf`. It gives login
 session scopes CPU weight 1000 versus the default 100 and `MemoryLow=1G`.
-On this COSMIC host the compositor and panel run in the login session scope,
+In the COSMIC session the compositor and panel run in the login session scope,
 while application/build scopes run under `user@1000.service`. This favors the
 core desktop during CPU contention and memory reclaim; it is not a hard
 reservation or guarantee against all stalls. The prefix drop-in applies to
@@ -41,15 +41,32 @@ future login scopes, including non-graphical sessions.
 `desktop-memory-parent.conf` is installed under both
 `user.slice.d/50-desktop-memory.conf` and
 `user-1000.slice.d/50-desktop-memory.conf` in `/etc/systemd/system/` to provide
-the ancestor memory protection budgets. The same properties were applied to
-the live cgroups without restarting the desktop.
+the ancestor memory protection budgets. In the Hyprland session, the
+compositor and PipeWire run under the user manager's `session.slice`.
+`desktop-user-manager.conf` goes in
+`/etc/systemd/system/user@1000.service.d/50-desktop-memory.conf`, and
+`desktop-session-slice.conf` goes in
+`~/.config/systemd/user/session.slice.d/50-desktop-priority.conf`.
+Together they carry the 1 GiB memory protection budget to the live desktop
+and give it a higher CPU weight.
 
-Earlyoom is enabled at boot. Below 10% available userspace memory it sends
-SIGTERM to a selected process; below 5% it can use SIGKILL. Swap availability
-does not delay intervention. Compiler/linker processes receive preference,
-desktop apps receive avoidance, and root-owned processes are excluded.
+Earlyoom is enabled at boot. At 4 GiB available RAM it can send SIGTERM to
+a selected process, escalating to SIGKILL at 2 GiB. Swap availability
+does not delay intervention. Compiler and linker processes receive preference.
+The compositor, audio services, and browsers receive avoidance. Root-owned
+processes are excluded.
 Preferences are not guarantees: another user process can be selected when
 necessary. A build may fail under pressure to keep the machine usable.
+
+Use `guarded-job` for memory-heavy builds, tests, and local agents during
+calls. It runs the command and its descendants in a systemd scope that
+throttles at 4 GiB of RAM and caps RAM at 6 GiB and swap at 2 GiB. If the
+kernel invokes the OOM killer in that scope, it stops the job as a group.
+
+```sh
+install -Dm0755 scripts/linux/guarded-job ~/.local/bin/guarded-job
+guarded-job pnpm build
+```
 
 Check the active protection with:
 
@@ -61,5 +78,6 @@ journalctl -u earlyoom.service
 
 These system configs are applied on this workstation; the normal dotfiles
 installer does not yet deploy them. Changes to these source files require
-copying them to the paths above and reloading the system manager. Cargo's
-config is already linked into the home directory.
+copying them to the paths above and reloading the relevant systemd manager.
+Restart `earlyoom.service` after changing its configuration. Cargo's config
+is already linked into the home directory.
