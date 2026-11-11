@@ -13,8 +13,7 @@ arch_optional=(clang cmake ninja automake pkgconf openssl protobuf zig bats ansi
   pandoc libvips espeak-ng whisper.cpp caddy iperf3 lftp tailscale
   smartmontools dfu-util qemu-system-aarch64 squashfs-tools xorriso android-tools
   ollama podman distrobox)
-arch_desktop=(cosmic-session cosmic-terminal cosmic-text-editor cosmic-store
-  flatpak networkmanager wl-clipboard noto-fonts-emoji jq bluez bluez-utils bluez-obex)
+arch_desktop=(cosmic-greeter flatpak networkmanager wireless-regdb wl-clipboard noto-fonts-emoji jq bluez bluez-utils bluez-obex)
 arch_desktop_optional=(keepassxc syncthing chromium vlc satty openssh-askpass)
 
 # Pacman has no --skip-unavailable. Resolve optional packages from the synced
@@ -68,7 +67,7 @@ install_system_packages() {
   bash "$dotfiles_dir/scripts/linux/vendor-apps.sh"
   if command -v syncthing >/dev/null 2>&1; then
     systemctl --user enable --now syncthing.service ||
-      echo 'warning: enable syncthing.service after logging into COSMIC' >&2
+      echo 'warning: enable syncthing.service after logging into the desktop' >&2
   fi
 }
 

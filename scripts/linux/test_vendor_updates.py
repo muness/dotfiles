@@ -85,6 +85,73 @@ class RoutingTests(unittest.TestCase):
         self.assertNotIn('1password.sh', calls)
 
 
+class PackagedDependencyTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.root = Path(self.tmp.name)
+        self.bin = self.root / 'bin'
+        self.bin.mkdir()
+        self.log = self.root / 'install-targets'
+        self.probe = self.root / 'dependency-query'
+        self.env = dict(os.environ, PATH=str(self.bin) + ':' + os.environ['PATH'],
+                        CALL_LOG=str(self.log), PROBE_LOG=str(self.probe),
+                        DEPTEST_EXIT='0', MISSING_DEPS='')
+        script = (HERE / 'vendor-packaged-apps.sh').read_text()
+        script = script.replace('. /etc/os-release', 'ID=arch; ID_LIKE=')
+        script = script.replace('((EUID != 0))', 'true')
+        (self.root / 'vendor-packaged-apps.sh').write_text(script)
+        recipes = self.root / 'vendor-packages'
+        recipes.mkdir()
+        (recipes / 'chrome.PKGBUILD').write_text("depends=('mesa' 'recipe-runtime>=2')\n")
+        for name, content in [
+            ('uname', 'echo aarch64'),
+            ('pacman', '[[ $1 == -T ]] || exit 99\n'
+                       'printf "%s\\n" "$@" >"$PROBE_LOG"\n'
+                       '[[ -z $MISSING_DEPS ]] || printf "%s\\n" "$MISSING_DEPS"\n'
+                       'exit "$DEPTEST_EXIT"'),
+            # Capture the proposed transaction and cancel before any install,
+            # network lookup, or package build can happen.
+            ('pkexec', 'printf "%s\\n" "$@" >"$CALL_LOG"\nexit 126'),
+        ]:
+            path = self.bin / name
+            path.write_text('#!/bin/bash\n' + content + '\n')
+            path.chmod(0o755)
+
+    def invoke(self):
+        result = subprocess.run(['bash', str(self.root / 'vendor-packaged-apps.sh'), 'chrome'],
+                                env=self.env, text=True, capture_output=True)
+        targets = self.log.read_text().splitlines() if self.log.exists() else []
+        return result, targets
+
+    def test_satisfied_providers_are_preserved_and_full_upgrade_still_runs(self):
+        result, targets = self.invoke()
+        self.assertEqual(result.returncode, 126, result.stderr)
+        self.assertEqual(targets, ['/usr/bin/pacman', '-Syu', '--needed', '--noconfirm'])
+        queried = self.probe.read_text().splitlines()
+        self.assertIn('base-devel', queried)
+        self.assertIn('mesa', queried)
+        self.assertIn('recipe-runtime>=2', queried)
+
+    def test_missing_versioned_dependency_is_installed_without_replacing_mesa(self):
+        self.env.update(DEPTEST_EXIT='127', MISSING_DEPS='recipe-runtime>=2\nlibarchive\nlibarchive')
+        result, targets = self.invoke()
+        self.assertEqual(result.returncode, 126, result.stderr)
+        self.assertEqual(targets[4:], ['libarchive', 'recipe-runtime>=2'])
+
+    def test_mesa_is_installed_when_no_provider_satisfies_it(self):
+        self.env.update(DEPTEST_EXIT='127', MISSING_DEPS='mesa')
+        result, targets = self.invoke()
+        self.assertEqual(result.returncode, 126, result.stderr)
+        self.assertEqual(targets[4:], ['mesa'])
+
+    def test_dependency_query_failure_stops_before_authentication(self):
+        self.env.update(DEPTEST_EXIT='1', MISSING_DEPS='partial-output')
+        result, targets = self.invoke()
+        self.assertEqual(result.returncode, 1, result.stderr)
+        self.assertEqual(targets, [])
+
+
 class NativeMetadataTests(unittest.TestCase):
     def test_embedded_selects_highest_native_version_and_revision(self):
         index = '\n'.join(f'<a href="hqplayerd-{v}-{r}.fc44.{a}.rpm">build</a>' for v, r, a in [

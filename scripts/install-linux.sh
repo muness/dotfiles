@@ -69,13 +69,13 @@ stow_packages "${shared_packages[@]}" systemd tern-linux
 install_mise_tools
 bash "$dotfiles_dir/scripts/setup-cargo.sh"
 install_user_tools
-if declare -F install_caffeine_applet >/dev/null; then install_caffeine_applet; fi
 # Distro scripts may define extra steps that need rustup/mise first.
 if declare -F install_swamp >/dev/null; then install_swamp; fi
 if declare -F install_satty >/dev/null; then install_satty; fi
 schedule_swamp
 enable_user_services caddy.service cloudflared.service
 if [[ ${SKIP_DESKTOP:-} != 1 ]]; then
+  python3 "$dotfiles_dir/scripts/linux/install-fonts.py"
   enable_user_services dotfiles-user-app-updates.timer
 fi
 

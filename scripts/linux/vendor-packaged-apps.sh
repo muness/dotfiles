@@ -45,12 +45,26 @@ if [[ $mode == install || $mode == build ]]; then
       mapfile -t app_dependencies < <(bash -c 'source "$1"; printf "%s\n" "${depends[@]}"' backend "$here/vendor-packages/$app.PKGBUILD")
       vendor_dependencies+=("${app_dependencies[@]}")
     done
-    pkexec /usr/bin/pacman -Syu --needed --noconfirm base-devel libarchive python \
-      alsa-lib at-spi2-core bash ca-certificates cairo curl dbus expat gcc-libs \
-      gdk-pixbuf2 glib2 glibc gtk3 libcups libdrm libglvnd libnotify libusb \
-      libx11 libxcb libxcomposite libxdamage libxext libxfixes libxkbcommon \
-      libxrandr libxss libxtst libsecret pipewire mesa nspr nss openssl pango systemd-libs \
-      tpm2-tss ttf-liberation vulkan-icd-loader wget xdg-utils xz "${vendor_dependencies[@]}"
+    dependencies=(base-devel libarchive python
+      alsa-lib at-spi2-core bash ca-certificates cairo curl dbus expat gcc-libs
+      gdk-pixbuf2 glib2 glibc gtk3 libcups libdrm libglvnd libnotify libusb
+      libx11 libxcb libxcomposite libxdamage libxext libxfixes libxkbcommon
+      libxrandr libxss libxtst libsecret pipewire mesa nspr nss openssl pango systemd-libs
+      tpm2-tss ttf-liberation vulkan-icd-loader wget xdg-utils xz "${vendor_dependencies[@]}")
+    # Explicit sync targets bypass installed providers such as mesa-aurora.
+    # Deptest honors providers and version constraints; 127 means missing deps,
+    # while any other failure must stop before starting a package transaction.
+    if missing_dependencies=$(pacman -T "${dependencies[@]}"); then
+      missing_dependencies=
+    else
+      result=$?
+      [[ $result == 127 ]] || exit "$result"
+    fi
+    install_targets=()
+    if [[ -n $missing_dependencies ]]; then
+      mapfile -t install_targets < <(printf '%s\n' "$missing_dependencies" | sort -u)
+    fi
+    pkexec /usr/bin/pacman -Syu --needed --noconfirm "${install_targets[@]}"
   fi
   command -v makepkg >/dev/null || { echo 'makepkg is required (base-devel).' >&2; exit 2; }
 fi
