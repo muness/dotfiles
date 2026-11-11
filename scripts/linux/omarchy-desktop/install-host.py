@@ -17,6 +17,19 @@ def output(*args):
     return subprocess.check_output(args, text=True)
 
 
+def install_targets(dependencies):
+    # An explicit repository target bypasses an installed provider. Aurora's
+    # fprintd replacement supplies this dependency but conflicts with fprintd.
+    if 'fprintd' in dependencies:
+        result = subprocess.run(['/usr/bin/pacman', '-T', 'fprintd'],
+                                stdout=subprocess.DEVNULL, check=False)
+        if result.returncode == 0:
+            return [dependency for dependency in dependencies if dependency != 'fprintd']
+        if result.returncode != 127:
+            raise subprocess.CalledProcessError(result.returncode, result.args)
+    return dependencies
+
+
 def main(archive):
     if os.geteuid() != 0:
         raise SystemExit('Run with pkexec /usr/bin/python3 ' + str(Path(__file__).resolve()) + ' PACKAGE')
@@ -37,7 +50,7 @@ def main(archive):
     metadata = output('/usr/bin/bsdtar', '-xOf', str(archive), '.PKGINFO')
     dependencies = [line.removeprefix('depend = ') for line in metadata.splitlines()
                     if line.startswith('depend = ')]
-    run('/usr/bin/pacman', '-Syu', '--disable-download-timeout', '--needed', '--noconfirm', *dependencies)
+    run('/usr/bin/pacman', '-Syu', '--disable-download-timeout', '--needed', '--noconfirm', *install_targets(dependencies))
     assert output('/usr/bin/pacman', '-Q', *packages) == before, 'Aurora stack changed unexpectedly'
     assert [line for line in Path('/etc/pacman.conf').read_bytes().splitlines() if line.startswith(b'IgnorePkg')] == pins
     run('/usr/bin/pacman', '-U', '--noconfirm', str(archive))

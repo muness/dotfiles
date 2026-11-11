@@ -1,0 +1,33 @@
+#!/usr/bin/env bash
+# Open the same SSH host and Codex account saved as "stock" in the GUI.
+set -euo pipefail
+
+if [[ ${1:-} == --help || ${1:-} == -h ]]; then
+  cat <<'EOF'
+Usage: codex-stock [CODEX_ARGUMENTS...]
+
+With no arguments, browse all saved sessions on the GUI's stock host,
+including sessions started outside the terminal.
+
+Examples:
+  codex-stock
+  codex-stock resume SESSION_ID
+  codex-stock agents
+  codex-stock -C /workspaces/muness-src/home-infra
+EOF
+  exit 0
+fi
+
+if (( $# == 0 )); then
+  set -- resume --all --include-non-interactive
+fi
+
+# SSH passes a command string to the remote shell. Quote each argument so
+# prompts and paths retain their literal contents, including shell syntax.
+remote_command='exec /opt/fleet-codex/stock/codex'
+for arg in "$@"; do
+  arg=${arg//\'/\'\\\'\'}
+  remote_command+=" '$arg'"
+done
+
+exec ssh -t -o ConnectTimeout=15 codex-stock "$remote_command"

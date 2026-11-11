@@ -179,8 +179,12 @@ polkit authentication. Cached archives,
 generated recipes and built packages live in
 `~/.cache/dotfiles/vendor-apps/`. The installed names are `google-chrome`,
 `openai-codex-desktop`, `claude-desktop` and `browseros-neo-bin`; remove them with pacman normally. Anthropic supports its Linux beta on Debian and Ubuntu, so Arch is an unsupported repackaging. Upstream changes are
-discovered on each updater/installer run, not by a timer or the Debian/RPM app
-updater. `--force` rebuilds/reinstalls a current version. `--build-only` builds
+discovered on each updater/installer run and by the weekly user-app timer,
+which notifies when vendor updates are available. Installing these root-owned
+packages still uses the interactive updater and graphical authentication;
+the Debian/RPM app updater does not manage them. BrowserOS installer versions
+are read from asset filenames, including maintenance builds under older tags.
+`--force` rebuilds/reinstalls a current version. `--build-only` builds
 without installing (Arch build/runtime dependencies must already be present).
 `--download-only` verifies archives without installing and also runs on Fedora.
 
@@ -236,3 +240,112 @@ its installer's control. Update the release and checksum in `aurora.sh` together
 after reviewing the upstream release, then rerun the same mode. Never swap only
 the kernel or only the DTBs. Keep Fedora until the new installation meets the
 acceptance checks.
+
+## CI kernel trial prepared 2026-11-01
+
+**Current status, 2026-11-03:** the user reports the CI kernel and staged
+boot image working well, with no observed regression. The GRUB entry is now
+**Aurora CI 7.2.11 - known working**, and `GRUB_DEFAULT` selects its existing
+ID `aurora-ci-41324776125`. The `.20` entry is labeled
+**Aurora .20 - fallback (7.1.12)**. This update changes the menu labels and
+default selection only; it does not rebuild the boot image or change the
+persistent DTB package selection. The dated notes below record the trial's
+history, including earlier defaults and rollback states.
+
+**2026-11-02: rolled back after USB dock failure.** The user reported the
+Microsoft Surface USB4 dock failed under both 7.2.11 and the `.20` menu entry.
+Both were still using the CI DTB bundle, so this did not establish a failure
+of the original complete `.20` setup. Restored `.20` as the default, its
+original `update-m1n1` package selection, and the exact pre-trial `boot.bin`
+(SHA-256 `8fb48d6342492b422fcf19c2bd58cabee6a6e5370020506a89a1542e24588da2`).
+The original and restored bundle hashes match. Current-boot logs and module
+and USB inventories are under
+`~/.local/state/aurora-ci-diagnostics/20261102T141751Z`.
+The running CI kernel remains active until shutdown. A full shutdown and
+dock power cycle followed by a default `.20` boot is needed to retest the
+original configuration. Recovery of the dock has not yet been confirmed.
+The adoption description below records the previous trial, not current state.
+
+**Cold-boot follow-up, 2026-11-02:** the user reports the Surface dock working
+again. This is a new boot (`516f4b60-58e9-4dbc-b841-db80aa7ae7c9`), but the running
+kernel is **7.2.11-14-1.536-ARCH**, not `.20`. The original `.20` boot bundle
+remains on disk. USB enumeration shows the Intel and Microsoft hub links at
+10 Gb/s, the Microsoft LAN device on a 5 Gb/s USB link, and the Logitech BRIO
+on a 5 Gb/s link; a Thunderbolt DP tunnel is established. This demonstrates
+that 7.2.11 can operate the dock after a cold boot with the restored bundle;
+it does not distinguish device-tree changes from controller/dock power-cycle
+recovery. Do not record this as a successful `.20` kernel retest.
+
+**Warm-reboot follow-up, 2026-11-02:** the user reports another successful
+7.2.11 boot without power-cycling the dock. New boot ID
+`6c71fd4a-556a-48f2-9168-33bf44c62d30`; the original `.20` bundle hash still
+matches, and the CI-only `apple,pciec-kernel-init` property is absent from the
+live tunnel-0 device tree. Hub links remain at 10 Gb/s, Ethernet and BRIO USB
+links at 5 Gb/s, and both Thunderbolt display tunnels are established. No
+pipehandler failure or USB3-PHY-setup failure appears in this boot's log.
+This strengthens the case for retaining the older bundle with 7.2.11 during
+testing, but does not prove which changed component caused the earlier failure.
+
+**Controlled DTB comparison staged, 2026-11-02:** after docked clamshell and
+one actual suspend/resume also recovered the dock on 7.2.11 with the older
+bundle, the user requested a newer-tree retest. Staged a fresh bundle from
+`linux-aurora-ci`'s 115 DTBs and the same installed m1n1/U-Boot binaries.
+Verified the complete DTB prefix and decompressed U-Boot payload before
+activation. Per-trial backups and baseline logs are in a `dtb-trial-*`
+directory under `/var/lib/aurora-ci-test/41324776125`. Persistent DTB package
+selection remains `.20`, as does GRUB's default. For this test select 7.2.11
+manually and warm-reboot without power-cycling the dock. Result pending.
+Use `pkexec /usr/local/sbin/aurora-ci-restore-boot` and reboot to return to
+the older bundle if the dock fails. The recent resume used the re-enabled
+Wi-Fi recovery helper, so it is not additional unassisted Wi-Fi evidence.
+
+The J414C has a parallel trial of kernel `7.2.11-14-1.536-ARCH`, from
+[successful upstream CI run 41324776125](https://github.com/omacom/linux-aurora/actions/runs/41324776125)
+at commit `4fdd0fc5c931ef9f14474942b37c3d451e97fc04`. The downloaded kernel and
+headers were repackaged as `linux-aurora-ci` and `linux-aurora-ci-headers` so
+the released `.20` packages, headers and module tree remain installed. Kernel
+code was not rebuilt. Binder and `alsa_bridge` were rebuilt through DKMS.
+
+The initial trial used **Aurora CI test - 7.2.11 (2026-11-01)** in GRUB, with
+`.20` as the default and no one-time override. It was subsequently adopted as
+the default as described below. Confirm the
+test kernel with `uname -r`, then check accelerated graphics, Wi-Fi, audio,
+Waydroid, dock hotplug and suspend/resume. The test entry requests
+`cfg80211.ieee80211_regdom=US`; the candidate J414C device tree retains the
+previously disabled PMP. No M3-only sleep-power settings were enabled.
+
+The shared Arch m1n1 `boot.bin` now contains the candidate's matching device
+trees, using the existing m1n1/U-Boot binaries. Selecting `.20` alone does not
+restore its old device trees. For a complete return to its original bundle:
+
+```bash
+pkexec /usr/local/sbin/aurora-ci-restore-boot
+# Then reboot normally into the default .20 kernel.
+```
+
+The original bundle is also on Arch's EFI partition at
+`m1n1/boot.bin.before-ci-41324776125`, for restoration from another OS if the
+boot chain fails before GRUB. Identify Arch's EFI partition by PARTUUID
+`667de9ee-cc3d-425e-97a9-d29dab9c99a5`; do not change Fedora's EFI partition.
+The root snapshot, full EFI backup, original configuration and checksum
+records are under `/var/lib/aurora-ci-test/41324776125`. Downloads, repackaging
+recipe and preparation scripts are under
+`~/.cache/dotfiles/aurora-ci/41324776125`.
+
+After a successful desktop boot and an unassisted Wi-Fi resume, the user
+adopted this kernel as default on 2026-11-01. GRUB now defaults to the stable
+entry ID `aurora-ci-41324776125`, labeled **Aurora 7.2.11 - default**. A separate
+top-level **Aurora .20 - fallback (7.1.12)** entry uses ID `aurora20-fallback`.
+Both package pairs and the larger 36-pixel GRUB font are retained.
+
+`/etc/default/update-m1n1` now selects only `linux-aurora-ci`'s package-owned
+device trees, so routine hooks retain the adopted kernel's DTBs. Regenerating
+with this selection verified the same m1n1 binary, ordered DTBs and decompressed
+U-Boot payload as the tested bundle; their container ordering differs. The
+currently tested boot file was retained unchanged during adoption.
+`aurora-ci-restore-boot` now restores all three: `.20` as GRUB default, the
+original package selection for DTBs, and the original `.20` boot bundle.
+Selection of the fallback menu entry alone still uses the shared CI DTBs.
+The pre-adoption configuration is backed up under the state's `adopt-before`
+directory. Broader dock, audio and sleep reliability acceptance remains open;
+automatic Wi-Fi resume recovery is disabled during continued testing.

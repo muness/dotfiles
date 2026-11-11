@@ -127,21 +127,12 @@ installs COSMIC, Chromium, KeePassXC, Syncthing, VLC, the 1Password app, the
 ChatGPT desktop app and the flatpaks. swamp and Satty are built from source
 because neither ships an aarch64 Linux release.
 
-The Linux desktop setup builds the Caffeine COSMIC applet from the pinned
-upstream source in `third_party/caffeine-applet/` and adds it to the panel. Its
-popup shows a live countdown on the selected duration. Configure presets in
-`~/.config/cosmic/com.github.codevardhan.caffeine-applet/v1/settings`.
-The optional **Keep awake with lid closed** switch is hidden unless
-`dangerous_enable_closed_lid_control: true` is set there; it always starts off.
-Use `default_duration_minutes: Some(25)` for a 25-minute left-click session,
-or `None` for indefinite. Reopen the popup after editing config to reload it.
-Log out and back in after install or updates to refresh the panel. The setup
-also enables Tailscale's Linux systray in COSMIC's Status Area; run
-`sudo tailscale up` once to connect this machine to the Fleet tailnet.
+Linux desktop installs also install Iosevka Aile, Iosevka Etoile, Iosevka Comfy Wide,
+and Iosevka Comfy Wide Duo for the current user. Run `python3 ~/dotfiles/scripts/linux/install-fonts.py`
+to install them separately. Fully quit and reopen an app to refresh its font list.
 
-Vicinae is installed for desktop profiles on Fedora and Arch Linux, and its
-user service starts at login. Invoke it with `vicinae toggle`; add that command
-as a custom shortcut in COSMIC Settings → Keyboard if you want a launcher key.
+The desktop setup also enables Tailscale's Linux systray in COSMIC's Status Area; run
+`sudo tailscale up` once to connect this machine to the Fleet tailnet.
 
 On Arch desktop installs, Tether is installed from the latest checksum-verified upstream
 AppImage, with its user service enabled and BlueZ's OBEX package installed.
