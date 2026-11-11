@@ -155,6 +155,22 @@ class PortalTests(unittest.TestCase):
         self.launch.assert_not_called()
         self.assertIn('Wi-Fi is online', notify.call_args.args[0])
 
+    def test_scoped_launcher_only_opens_the_selected_adapter(self):
+        tray = portal.Tray.__new__(portal.Tray)
+        tray.updated = Mock()
+        other = Device()
+        other.get_iface = lambda: 'wld1'
+        other_watch = Mock()
+        other_watch.pending = True
+        tray.watches = {other: (other_watch, []), self.device: (self.watch, [])}
+        self.device.ip4 = NM.ConnectivityState.LIMITED
+        self.assertTrue(tray.OpenDevice('wld0'))
+        self.launch.assert_called_once()
+        other_watch.open.assert_not_called()
+        self.assertTrue(self.watch.pending)
+        self.device.ip4 = NM.ConnectivityState.FULL
+        self.assertFalse(tray.OpenDevice('wld0'))
+
 
 if __name__ == '__main__':
     unittest.main()

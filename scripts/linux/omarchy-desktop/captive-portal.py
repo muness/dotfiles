@@ -81,8 +81,10 @@ class PortalWatch:
                 self.assistant = self.launch()
             except OSError as error:
                 print(f'Could not open Wi-Fi sign-in: {error}', flush=True)
+                return False
         else:
             self.focus(self.assistant)
+        return True
 
     def stop(self):
         if self.assistant is not None and self.assistant.poll() is None:
@@ -196,6 +198,19 @@ class Tray(dbus.service.Object):
                                   'Wi-Fi is online',
                                   _device.get_active_connection().get_id() + ' has internet access. No sign-in is needed.'])
 
+    @dbus.service.method(CONTROL, in_signature='s', out_signature='b')
+    def OpenDevice(self, interface):
+        for device, (watch, _signals) in self.watches.items():
+            if device.get_iface() != interface or device.get_state() != NM.DeviceState.ACTIVATED:
+                continue
+            states = [device.get_connectivity(f) for f in (socket.AF_INET, socket.AF_INET6)]
+            if NM.ConnectivityState.FULL in states and NM.ConnectivityState.PORTAL not in states:
+                return False
+            watch.pending = True
+            self.updated()
+            return watch.open()
+        return False
+
     @dbus.service.method(CONTROL, out_signature='s')
     def Status(self):
         return json.dumps([{'interface': d.get_iface(), 'connection': d.get_active_connection().get_id(),
@@ -210,10 +225,13 @@ def main():
         service = bus.get_object(BUS, PATH)
         if sys.argv[1] == '--open':
             service.Open(dbus_interface=CONTROL)
+        elif sys.argv[1] == '--open-device' and len(sys.argv) in (3, 4):
+            if not service.OpenDevice(sys.argv[2], dbus_interface=CONTROL):
+                raise SystemExit('Could not open sign-in for this Wi-Fi adapter. Check its connection and try again.')
         elif sys.argv[1] == '--status':
             print(service.Status(dbus_interface=CONTROL))
         else:
-            raise SystemExit('Usage: omarchy-captive-portal [--open|--status]')
+            raise SystemExit('Usage: omarchy-captive-portal [--open|--open-device ADAPTER [PROBE_URL]|--status]')
         return
     client = NM.Client.new(None)
     watches = {}
@@ -234,7 +252,7 @@ def main():
         if entry:
             entry[0].stop()
             for handler in entry[1]:
-                device.disconnect(handler)
+                device.handler_disconnect(handler)
             tray.updated()
 
     def check():
